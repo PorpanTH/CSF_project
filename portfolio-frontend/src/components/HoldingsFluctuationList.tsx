@@ -1,9 +1,10 @@
 import { LineChart, Line, ResponsiveContainer } from 'recharts'
 import { HoldingFluctuation } from '../types'
-import { STATUS } from '../theme/colors'
+import { STATUS, BRAND } from '../theme/colors'
 
 interface HoldingsFluctuationListProps {
   holdings: HoldingFluctuation[]
+  onSell: (ticker: string) => void
 }
 
 const Sparkline = ({ history, color }: { history: number[]; color: string }) => (
@@ -16,7 +17,7 @@ const Sparkline = ({ history, color }: { history: number[]; color: string }) => 
   </div>
 )
 
-export const HoldingsFluctuationList = ({ holdings }: HoldingsFluctuationListProps) => {
+export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuationListProps) => {
   return (
     <div className="card">
       <div className="flex items-baseline justify-between mb-4">
@@ -29,11 +30,12 @@ export const HoldingsFluctuationList = ({ holdings }: HoldingsFluctuationListPro
           const color = positive ? STATUS.good : STATUS.critical
           return (
             <div key={holding.ticker} className="flex items-center justify-between py-3 gap-4">
-              <div className="w-20 shrink-0">
+              <div className="w-24 shrink-0">
                 <p className="font-semibold text-gray-900">{holding.ticker}</p>
-                <p className="text-xs text-gray-500">
-                  ${holding.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                </p>
+                <p className="text-xs text-gray-500">{holding.quantity} shares</p>
+              </div>
+              <div className="w-20 shrink-0 text-sm text-gray-700">
+                ${holding.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
               <Sparkline history={holding.priceHistory} color={color} />
               <div className="w-20 text-right shrink-0">
@@ -41,9 +43,19 @@ export const HoldingsFluctuationList = ({ holdings }: HoldingsFluctuationListPro
                   {positive ? '+' : ''}{holding.changePercent.toFixed(2)}%
                 </span>
               </div>
+              <button
+                onClick={() => onSell(holding.ticker)}
+                className="px-3 py-1 text-xs font-medium text-white rounded-md shrink-0"
+                style={{ backgroundColor: BRAND[700] }}
+              >
+                Sell
+              </button>
             </div>
           )
         })}
+        {holdings.length === 0 && (
+          <p className="text-center text-gray-400 py-6">No equity holdings yet — buy some from the market below.</p>
+        )}
       </div>
     </div>
   )

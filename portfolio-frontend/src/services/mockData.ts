@@ -1,4 +1,4 @@
-import { Portfolio, PnLByAssetClass, PnLRange, PnLSeriesPoint, HoldingFluctuation, BreakdownSlice } from '../types'
+import { Portfolio, PnLByAssetClass, PnLRange, PnLSeriesPoint, HoldingFluctuation, BreakdownSlice, PortfolioItem, MarketEquity } from '../types'
 
 const priceHistory = (current: number, points = 30, volatility = 0.02) => {
   const history: number[] = []
@@ -117,8 +117,6 @@ export const getMockPortfolioById = (id: string): Portfolio | undefined => {
   return JSON.parse(JSON.stringify(mockPortfolios.find(p => p.id === id)))
 }
 
-const allItems = () => mockPortfolios.flatMap(p => p.items)
-
 export const calculateMetrics = (portfolio: Portfolio) => {
   const items = portfolio.items
 
@@ -181,7 +179,9 @@ export const getHistoricalData = (days: number = 30) => {
   return data
 }
 
-// --- New aggregate helpers for the overview dashboard ---
+// --- Live-portfolio aggregate helpers (operate on the active portfolio's items[], not the static mocks) ---
+
+const ASSET_CLASS_LABELS: Record<PortfolioItem['itemType'], string> = { stock: 'Stocks', bond: 'Bonds', cash: 'Cash' }
 
 const buildSlices = (buckets: Record<string, number>): BreakdownSlice[] => {
   const total = Object.values(buckets).reduce((s, v) => s + v, 0)
@@ -203,86 +203,102 @@ const buildSlices = (buckets: Record<string, number>): BreakdownSlice[] => {
   return slices
 }
 
-export const getAssetClassSlices = (): BreakdownSlice[] => {
-  const labels: Record<string, string> = { stock: 'Stocks', bond: 'Bonds', cash: 'Cash' }
+export const getAssetClassSlices = (items: PortfolioItem[]): BreakdownSlice[] => {
   const buckets: Record<string, number> = {}
-  allItems().forEach(item => {
-    const key = labels[item.itemType]
+  items.forEach(item => {
+    const key = ASSET_CLASS_LABELS[item.itemType]
     buckets[key] = (buckets[key] || 0) + item.quantity * item.currentPrice
   })
   return buildSlices(buckets)
 }
 
-export const getSectorSlices = (): BreakdownSlice[] => {
+export const getSectorSlices = (items: PortfolioItem[]): BreakdownSlice[] => {
   const buckets: Record<string, number> = {}
-  allItems().forEach(item => {
+  items.forEach(item => {
     buckets[item.sector] = (buckets[item.sector] || 0) + item.quantity * item.currentPrice
   })
   return buildSlices(buckets)
 }
 
-export const getRegionSlices = (): BreakdownSlice[] => {
+export const getRegionSlices = (items: PortfolioItem[]): BreakdownSlice[] => {
   const buckets: Record<string, number> = {}
-  allItems().forEach(item => {
+  items.forEach(item => {
     buckets[item.region] = (buckets[item.region] || 0) + item.quantity * item.currentPrice
   })
   return buildSlices(buckets)
 }
 
-export const getPnLByAssetClass = (): PnLByAssetClass[] => {
-  const labels: Record<string, string> = { stock: 'Stocks', bond: 'Bonds', cash: 'Cash' }
+export const getPnLByAssetClass = (
+  items: PortfolioItem[],
+  extraRealized: Record<string, number> = {}
+): PnLByAssetClass[] => {
   const buckets: Record<string, { realized: number; floating: number }> = {}
 
-  allItems().forEach(item => {
-    const key = labels[item.itemType]
+  items.forEach(item => {
+    const key = ASSET_CLASS_LABELS[item.itemType]
     if (!buckets[key]) buckets[key] = { realized: 0, floating: 0 }
     buckets[key].realized += item.realizedPnL
     buckets[key].floating += (item.currentPrice - item.purchasePrice) * item.quantity
   })
 
+  Object.entries(extraRealized).forEach(([key, value]) => {
+    if (!buckets[key]) buckets[key] = { realized: 0, floating: 0 }
+    buckets[key].realized += value
+  })
+
   return Object.entries(buckets).map(([assetClass, v]) => ({ assetClass, ...v }))
 }
 
-export const getTotalPnL = () => {
-  const breakdown = getPnLByAssetClass()
+export const getTotalPnL = (items: PortfolioItem[], extraRealized: Record<string, number> = {}) => {
+  const breakdown = getPnLByAssetClass(items, extraRealized)
   const realized = breakdown.reduce((s, b) => s + b.realized, 0)
   const floating = breakdown.reduce((s, b) => s + b.floating, 0)
   return { realized, floating, total: realized + floating }
 }
 
-const RANGE_DAYS: Record<PnLRange, number> = {
-  monthly: 30,
-  ytd: Math.ceil((Date.now() - new Date(new Date().getFullYear(), 0, 1).getTime()) / 86400000),
-  '1y': 365,
-  '2y': 730,
-  '3y': 1095,
+const RANGE_CONFIG: Record<PnLRange, { points: number; unit: 'hour' | 'day' | 'month' }> = {
+  daily: { points: 24, unit: 'hour' },
+  weekly: { points: 7, unit: 'day' },
+  monthly: { points: 30, unit: 'day' },
+  ytd: { points: Math.ceil((Date.now() - new Date(new Date().getFullYear(), 0, 1).getTime()) / 86400000), unit: 'day' },
+  '1y': { points: 52, unit: 'day' },
+  '2y': { points: 24, unit: 'month' },
+  '3y': { points: 36, unit: 'month' },
 }
 
-export const getAccumulatedPnLSeries = (range: PnLRange): PnLSeriesPoint[] => {
-  const days = RANGE_DAYS[range]
-  const monthly = range === '2y' || range === '3y'
-  const step = monthly ? 30 : range === '1y' ? 7 : 1
-  const points: PnLSeriesPoint[] = []
-  const today = new Date()
-  let accumulated = -1500
+export const getAccumulatedPnLSeries = (range: PnLRange, endValue: number): PnLSeriesPoint[] => {
+  const { points, unit } = RANGE_CONFIG[range]
+  const points_: PnLSeriesPoint[] = []
+  const startValue = endValue - Math.abs(endValue) * 0.6 - 1200
+  const now = new Date()
 
-  for (let i = days; i >= 0; i -= step) {
-    const date = new Date(today)
-    date.setDate(date.getDate() - i)
-    const drift = (days - i) / days * 9500
-    const noise = (Math.random() - 0.5) * 1800
-    accumulated = -1500 + drift + noise
-    points.push({
-      date: date.toLocaleDateString('en-US', monthly ? { month: 'short', year: '2-digit' } : { month: 'short', day: 'numeric' }),
-      accumulated: Math.round(accumulated),
-    })
+  for (let i = points; i >= 0; i--) {
+    const date = new Date(now)
+    let label: string
+
+    if (unit === 'hour') {
+      date.setHours(date.getHours() - i)
+      label = date.toLocaleTimeString('en-US', { hour: 'numeric' })
+    } else if (unit === 'day') {
+      date.setDate(date.getDate() - i * (range === '1y' ? 7 : 1))
+      label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    } else {
+      date.setMonth(date.getMonth() - i)
+      label = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+    }
+
+    const progress = (points - i) / points
+    const drift = startValue + (endValue - startValue) * progress
+    const noise = (Math.random() - 0.5) * Math.max(Math.abs(endValue) * 0.08, 150)
+    points_.push({ date: label, accumulated: Math.round(drift + noise) })
   }
-  points[points.length - 1].accumulated = Math.round(getTotalPnL().total)
-  return points
+
+  points_[points_.length - 1].accumulated = Math.round(endValue)
+  return points_
 }
 
-export const getHoldingsFluctuations = (): HoldingFluctuation[] => {
-  return allItems()
+export const getHoldingsFluctuations = (items: PortfolioItem[]): HoldingFluctuation[] => {
+  return items
     .filter(item => item.itemType === 'stock')
     .map(item => {
       const first = item.priceHistory[0]
@@ -290,9 +306,38 @@ export const getHoldingsFluctuations = (): HoldingFluctuation[] => {
       return {
         ticker: item.ticker,
         itemType: item.itemType,
+        quantity: item.quantity,
         currentPrice: item.currentPrice,
         changePercent,
         priceHistory: item.priceHistory,
       }
     })
+}
+
+// --- Market (available equities to trade) ---
+
+const marketSeed: Omit<MarketEquity, 'priceHistory'>[] = [
+  { ticker: 'AAPL', name: 'Apple Inc.', sector: 'Technology', region: 'North America', price: 228.45, changePercent: 1.8 },
+  { ticker: 'MSFT', name: 'Microsoft Corp.', sector: 'Technology', region: 'North America', price: 417.89, changePercent: 0.9 },
+  { ticker: 'GOOGL', name: 'Alphabet Inc.', sector: 'Technology', region: 'North America', price: 155.62, changePercent: -0.6 },
+  { ticker: 'AMZN', name: 'Amazon.com Inc.', sector: 'Consumer Discretionary', region: 'North America', price: 186.30, changePercent: 2.1 },
+  { ticker: 'NVDA', name: 'NVIDIA Corp.', sector: 'Technology', region: 'North America', price: 118.40, changePercent: 3.4 },
+  { ticker: 'TSLA', name: 'Tesla Inc.', sector: 'Consumer Discretionary', region: 'North America', price: 245.80, changePercent: -2.3 },
+  { ticker: 'ASML', name: 'ASML Holding N.V.', sector: 'Technology', region: 'Europe', price: 680.30, changePercent: 1.2 },
+  { ticker: 'TSM', name: 'Taiwan Semiconductor', sector: 'Technology', region: 'Asia', price: 165.20, changePercent: 0.4 },
+  { ticker: 'SAP', name: 'SAP SE', sector: 'Technology', region: 'Europe', price: 210.75, changePercent: 0.7 },
+  { ticker: 'JPM', name: 'JPMorgan Chase & Co.', sector: 'Financials', region: 'North America', price: 214.60, changePercent: -0.3 },
+  { ticker: 'XOM', name: 'Exxon Mobil Corp.', sector: 'Energy', region: 'North America', price: 112.90, changePercent: 0.5 },
+  { ticker: 'PFE', name: 'Pfizer Inc.', sector: 'Healthcare', region: 'North America', price: 28.35, changePercent: -1.1 },
+  { ticker: 'NKE', name: 'Nike Inc.', sector: 'Consumer Discretionary', region: 'North America', price: 76.20, changePercent: -0.8 },
+  { ticker: 'DIS', name: 'The Walt Disney Co.', sector: 'Communication Services', region: 'North America', price: 112.55, changePercent: 1.5 },
+]
+
+let marketCache: MarketEquity[] | null = null
+
+export const getMarketEquities = (): MarketEquity[] => {
+  if (!marketCache) {
+    marketCache = marketSeed.map(eq => ({ ...eq, priceHistory: priceHistory(eq.price) }))
+  }
+  return marketCache
 }

@@ -4,7 +4,13 @@ import { PnLRange } from '../types'
 import { getAccumulatedPnLSeries } from '../services/mockData'
 import { STATUS, INK, BRAND } from '../theme/colors'
 
+interface AccumulatedPnLChartProps {
+  endValue: number
+}
+
 const RANGE_OPTIONS: { key: PnLRange; label: string }[] = [
+  { key: 'daily', label: 'Daily' },
+  { key: 'weekly', label: 'Weekly' },
   { key: 'monthly', label: 'Monthly' },
   { key: 'ytd', label: 'YTD' },
   { key: '1y', label: '1Y' },
@@ -27,9 +33,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null
 }
 
-export const AccumulatedPnLChart = () => {
+export const AccumulatedPnLChart = ({ endValue }: AccumulatedPnLChartProps) => {
   const [range, setRange] = useState<PnLRange>('ytd')
-  const data = useMemo(() => getAccumulatedPnLSeries(range), [range])
+  const data = useMemo(() => getAccumulatedPnLSeries(range, endValue), [range, endValue])
   const isPositive = data.length > 0 && data[data.length - 1].accumulated >= 0
   const lineColor = isPositive ? STATUS.good : STATUS.critical
 
@@ -37,7 +43,7 @@ export const AccumulatedPnLChart = () => {
     <div className="card mb-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <h3 className="text-lg font-bold text-gray-900">Accumulated P/L</h3>
-        <div className="flex gap-1 bg-gray-100 rounded-lg p-1 self-start">
+        <div className="flex gap-1 bg-gray-100 rounded-lg p-1 self-start flex-wrap">
           {RANGE_OPTIONS.map(opt => (
             <button
               key={opt.key}
