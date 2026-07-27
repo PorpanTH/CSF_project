@@ -2,35 +2,32 @@
 """
 Initialize the database schema.
 Creates all tables based on the models.
-Run: python database/init_db.py
+Run: cd portfolio-backend && python database/init_db.py
 """
 
 import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from sqlalchemy import text, inspect
-from database.config import Base, engine
-from database.models import User, Portfolio, PortfolioItem
+from sqlalchemy import inspect
+from config import app, db
 
 def init_db():
     try:
         print('Creating database tables...')
-        Base.metadata.create_all(bind=engine)
-        print('[+] Tables created successfully!')
+        with app.app_context():
+            db.create_all()
+            print('[+] Tables created successfully!')
 
-        inspector = inspect(engine)
-        tables = inspector.get_table_names()
-        print(f'\n[+] Tables in database: {", ".join(tables)}')
+            inspector = inspect(db.engine)
+            tables = inspector.get_table_names()
+            print(f'\n[+] Tables in database: {", ".join(tables)}')
 
-        print('\nTable schemas:')
-        for table_name in tables:
-            columns = inspector.get_columns(table_name)
-            print(f'\n  {table_name}:')
-            for col in columns:
-                col_type = str(col['type'])
-                nullable = 'NULL' if col['nullable'] else 'NOT NULL'
-                print(f'    - {col["name"]}: {col_type} {nullable}')
+            print('\nTable schemas:')
+            for table_name in tables:
+                columns = inspector.get_columns(table_name)
+                print(f'\n  {table_name}:')
+                for col in columns:
+                    col_type = str(col['type'])
+                    nullable = 'NULL' if col['nullable'] else 'NOT NULL'
+                    print(f'    - {col["name"]}: {col_type} {nullable}')
 
         return True
 

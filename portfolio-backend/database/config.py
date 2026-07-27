@@ -1,29 +1,18 @@
+"""
+Database configuration for test/utility scripts.
+Provides access to the Flask app, SQLAlchemy db instance, and models.
+"""
+
+import sys
 import os
-from dotenv import load_dotenv
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
 
-load_dotenv()
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-DATABASE_URL = os.getenv('DATABASE_URL', 'mysql+pymysql://user:password@localhost/portfolio_db')
+from app import create_app, db
+from models.user import User
+from models.portfolio import Portfolio, PortfolioItem
 
-db_url = DATABASE_URL
-if db_url.startswith('mysql://'):
-    db_url = db_url.replace('mysql://', 'mysql+pymysql://', 1)
+# Create and expose app for test scripts to use with app context
+app = create_app()
 
-engine = create_engine(
-    db_url,
-    echo=False,
-    pool_pre_ping=True,
-    pool_recycle=3600,
-)
-
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+__all__ = ['app', 'db', 'User', 'Portfolio', 'PortfolioItem']
