@@ -9,6 +9,10 @@ export interface PortfolioItem {
   currentPrice: number
   createdAt: string
   updatedAt: string
+  sector: string
+  region: string
+  realizedPnL: number
+  priceHistory: number[]
 }
 
 export interface Portfolio {
@@ -34,4 +38,31 @@ export interface AllocationData {
   value: number
   percentage: number
   count: number
+}
+
+export interface BreakdownSlice {
+  name: string
+  value: number
+  percentage: number
+}
+
+export interface PnLByAssetClass {
+  assetClass: string
+  realized: number
+  floating: number
+}
+
+export type PnLRange = 'monthly' | 'ytd' | '1y' | '2y' | '3y'
+
+export interface PnLSeriesPoint {
+  date: string
+  accumulated: number
+}
+
+export interface HoldingFluctuation {
+  ticker: string
+  itemType: 'stock' | 'bond' | 'cash'
+  currentPrice: number
+  changePercent: number
+  priceHistory: number[]
 }
