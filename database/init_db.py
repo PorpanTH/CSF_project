@@ -6,6 +6,9 @@ Run: python database/init_db.py
 """
 
 import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from sqlalchemy import text, inspect
 from database.config import Base, engine
 from database.models import User, Portfolio, PortfolioItem
@@ -14,11 +17,11 @@ def init_db():
     try:
         print('Creating database tables...')
         Base.metadata.create_all(bind=engine)
-        print('✓ Tables created successfully!')
+        print('[+] Tables created successfully!')
 
         inspector = inspect(engine)
         tables = inspector.get_table_names()
-        print(f'\n✓ Tables in database: {", ".join(tables)}')
+        print(f'\n[+] Tables in database: {", ".join(tables)}')
 
         print('\nTable schemas:')
         for table_name in tables:
@@ -32,7 +35,7 @@ def init_db():
         return True
 
     except Exception as e:
-        print(f'✗ Failed to create tables: {e}', file=sys.stderr)
+        print(f'[-] Failed to create tables: {e}', file=sys.stderr)
         return False
 
 if __name__ == '__main__':

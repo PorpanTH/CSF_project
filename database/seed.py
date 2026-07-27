@@ -5,6 +5,9 @@ Run: python database/seed.py
 """
 
 import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from datetime import date
 from werkzeug.security import generate_password_hash
 from database.config import SessionLocal
@@ -17,7 +20,7 @@ def seed_db():
 
         existing_user = db.query(User).filter_by(email='demo@example.com').first()
         if existing_user:
-            print('✓ Sample data already exists, skipping...')
+            print('[+] Sample data already exists, skipping...')
             return True
 
         user = User(
@@ -77,9 +80,9 @@ def seed_db():
         db.add_all(items)
         db.commit()
 
-        print(f'✓ Created user: {user.username} ({user.email})')
-        print(f'✓ Created portfolio: {portfolio.name}')
-        print(f'✓ Added {len(items)} portfolio items')
+        print(f'[+] Created user: {user.username} ({user.email})')
+        print(f'[+] Created portfolio: {portfolio.name}')
+        print(f'[+] Added {len(items)} portfolio items')
         print('\nSample data:')
         print(f'  - {items[0].quantity} shares of {items[0].ticker} @ ${items[0].current_price}')
         print(f'  - {items[1].quantity} shares of {items[1].ticker} @ ${items[1].current_price}')
@@ -90,7 +93,7 @@ def seed_db():
 
     except Exception as e:
         db.rollback()
-        print(f'✗ Failed to seed database: {e}', file=sys.stderr)
+        print(f'[-] Failed to seed database: {e}', file=sys.stderr)
         return False
     finally:
         db.close()

@@ -7,8 +7,12 @@ load_dotenv()
 
 DATABASE_URL = os.getenv('DATABASE_URL', 'mysql+pymysql://user:password@localhost/portfolio_db')
 
+db_url = DATABASE_URL
+if db_url.startswith('mysql://'):
+    db_url = db_url.replace('mysql://', 'mysql+pymysql://', 1)
+
 engine = create_engine(
-    DATABASE_URL,
+    db_url,
     echo=False,
     pool_pre_ping=True,
     pool_recycle=3600,

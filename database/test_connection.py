@@ -5,6 +5,9 @@ Run: python database/test_connection.py
 """
 
 import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from sqlalchemy import text
 from database.config import engine
 
@@ -13,17 +16,17 @@ def test_connection():
         print('Connecting to database...')
         with engine.connect() as conn:
             result = conn.execute(text('SELECT 1 as connection_test'))
-            print('✓ Connection successful!')
+            print('[+] Connection successful!')
 
             version_result = conn.execute(text('SELECT VERSION() as mysql_version'))
             version = version_result.scalar()
-            print(f'✓ MySQL Version: {version}')
+            print(f'[+] MySQL Version: {version}')
 
-        print('\n✓ Database connection test passed!')
+        print('\n[+] Database connection test passed!')
         return True
 
     except Exception as e:
-        print(f'✗ Connection failed: {e}', file=sys.stderr)
+        print(f'[-] Connection failed: {e}', file=sys.stderr)
         print('\nTroubleshooting:')
         print('1. Check that .env file exists with DATABASE_URL set')
         print('2. Verify the Railway MySQL connection string is correct')

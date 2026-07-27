@@ -5,6 +5,9 @@ Run: python database/query_demo.py
 """
 
 import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from database.config import SessionLocal
 from database.models import User, Portfolio, PortfolioItem
 
@@ -42,7 +45,7 @@ def query_demo():
         return True
 
     except Exception as e:
-        print(f'✗ Query failed: {e}', file=sys.stderr)
+        print(f'[-] Query failed: {e}', file=sys.stderr)
         return False
     finally:
         db.close()
