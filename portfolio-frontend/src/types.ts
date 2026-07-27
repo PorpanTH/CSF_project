@@ -52,7 +52,7 @@ export interface PnLByAssetClass {
   floating: number
 }
 
-export type PnLRange = 'monthly' | 'ytd' | '1y' | '2y' | '3y'
+export type PnLRange = 'daily' | 'weekly' | 'monthly' | 'ytd' | '1y' | '2y' | '3y'
 
 export interface PnLSeriesPoint {
   date: string
@@ -62,7 +62,30 @@ export interface PnLSeriesPoint {
 export interface HoldingFluctuation {
   ticker: string
   itemType: 'stock' | 'bond' | 'cash'
+  quantity: number
   currentPrice: number
   changePercent: number
   priceHistory: number[]
+}
+
+export interface MarketEquity {
+  ticker: string
+  name: string
+  sector: string
+  region: string
+  price: number
+  changePercent: number
+  priceHistory: number[]
+}
+
+export type OrderType = 'buy' | 'sell' | 'withdrawal'
+
+export interface Order {
+  id: string
+  type: OrderType
+  ticker?: string
+  quantity?: number
+  price?: number
+  total: number
+  date: string
 }
