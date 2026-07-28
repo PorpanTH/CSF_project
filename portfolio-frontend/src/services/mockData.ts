@@ -141,7 +141,9 @@ export const getAllocationData = (portfolio: Portfolio) => {
   const allocation = {
     stock: 0,
     bond: 0,
-    cash: 0
+    cash: 0,
+    etf: 0,
+    other: 0
   }
 
   portfolio.items.forEach(item => {
@@ -149,13 +151,15 @@ export const getAllocationData = (portfolio: Portfolio) => {
     allocation[item.itemType] += value
   })
 
-  const totalValue = allocation.stock + allocation.bond + allocation.cash
+  const totalValue = allocation.stock + allocation.bond + allocation.cash + allocation.etf + allocation.other
 
   return [
-    { type: 'stock' as const, value: allocation.stock, percentage: (allocation.stock / totalValue) * 100, count: portfolio.items.filter(i => i.itemType === 'stock').length },
-    { type: 'bond' as const, value: allocation.bond, percentage: (allocation.bond / totalValue) * 100, count: portfolio.items.filter(i => i.itemType === 'bond').length },
-    { type: 'cash' as const, value: allocation.cash, percentage: (allocation.cash / totalValue) * 100, count: portfolio.items.filter(i => i.itemType === 'cash').length },
-  ]
+    { type: 'stock' as const, value: allocation.stock, percentage: totalValue > 0 ? (allocation.stock / totalValue) * 100 : 0, count: portfolio.items.filter(i => i.itemType === 'stock').length },
+    { type: 'bond' as const, value: allocation.bond, percentage: totalValue > 0 ? (allocation.bond / totalValue) * 100 : 0, count: portfolio.items.filter(i => i.itemType === 'bond').length },
+    { type: 'cash' as const, value: allocation.cash, percentage: totalValue > 0 ? (allocation.cash / totalValue) * 100 : 0, count: portfolio.items.filter(i => i.itemType === 'cash').length },
+    { type: 'etf' as const, value: allocation.etf, percentage: totalValue > 0 ? (allocation.etf / totalValue) * 100 : 0, count: portfolio.items.filter(i => i.itemType === 'etf').length },
+    { type: 'other' as const, value: allocation.other, percentage: totalValue > 0 ? (allocation.other / totalValue) * 100 : 0, count: portfolio.items.filter(i => i.itemType === 'other').length },
+  ].filter(entry => entry.value > 0)
 }
 
 export const getHistoricalData = (days: number = 30) => {
@@ -181,7 +185,13 @@ export const getHistoricalData = (days: number = 30) => {
 
 // --- Live-portfolio aggregate helpers (operate on the active portfolio's items[], not the static mocks) ---
 
-const ASSET_CLASS_LABELS: Record<PortfolioItem['itemType'], string> = { stock: 'Stocks', bond: 'Bonds', cash: 'Cash' }
+const ASSET_CLASS_LABELS: Record<PortfolioItem['itemType'], string> = {
+  stock: 'Stocks',
+  bond: 'Bonds',
+  cash: 'Cash',
+  etf: 'ETFs',
+  other: 'Other'
+}
 
 const buildSlices = (buckets: Record<string, number>): BreakdownSlice[] => {
   const total = Object.values(buckets).reduce((s, v) => s + v, 0)
@@ -299,7 +309,7 @@ export const getAccumulatedPnLSeries = (range: PnLRange, endValue: number): PnLS
 
 export const getHoldingsFluctuations = (items: PortfolioItem[]): HoldingFluctuation[] => {
   return items
-    .filter(item => item.itemType === 'stock')
+    .filter(item => item.itemType === 'stock' || item.itemType === 'etf')
     .map(item => {
       const first = item.priceHistory[0]
       const changePercent = first > 0 ? ((item.currentPrice - first) / first) * 100 : 0

@@ -9,7 +9,9 @@ export const AllocationChart = ({ data }: AllocationChartProps) => {
   const COLORS = {
     stock: '#3B82F6',
     bond: '#10B981',
-    cash: '#F59E0B',
+    cash: '#64748B',
+    etf: '#8B5CF6',
+    other: '#F59E0B',
   }
 
   const chartData = data.map(d => ({
@@ -40,7 +42,7 @@ export const AllocationChart = ({ data }: AllocationChartProps) => {
             cx="50%"
             cy="50%"
             labelLine={false}
-            label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+            label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
             outerRadius={100}
             fill="#8884d8"
             dataKey="value"

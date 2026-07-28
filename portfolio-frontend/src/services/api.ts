@@ -2,7 +2,8 @@ import axios from 'axios'
 import { Portfolio, PortfolioItem } from '../types'
 import { getMockPortfolios, getMockPortfolioById } from './mockData'
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api'
+const viteEnv = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env
+const API_BASE_URL = viteEnv?.VITE_API_URL || 'http://localhost:5000/api'
 const USE_MOCK_DATA = true
 
 const apiClient = axios.create({

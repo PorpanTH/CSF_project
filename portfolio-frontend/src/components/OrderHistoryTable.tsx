@@ -1,5 +1,5 @@
 import { Order } from '../types'
-import { CATEGORICAL, BRAND } from '../theme/colors'
+import { CATEGORICAL, BRAND, STATUS } from '../theme/colors'
 
 interface OrderHistoryTableProps {
   orders: Order[]
@@ -9,6 +9,12 @@ const BADGE: Record<Order['type'], { label: string; color: string }> = {
   buy: { label: 'Buy', color: CATEGORICAL.slot1 },
   sell: { label: 'Sell', color: CATEGORICAL.slot3 },
   withdrawal: { label: 'Withdrawal', color: BRAND[700] },
+}
+
+const STATUS_BADGE: Record<Order['status'], { label: string; color: string }> = {
+  completed: { label: 'Completed', color: STATUS.good },
+  processing: { label: 'Processing', color: STATUS.warning },
+  pending: { label: 'Pending', color: STATUS.neutralMidpointDark },
 }
 
 export const OrderHistoryTable = ({ orders }: OrderHistoryTableProps) => {
@@ -27,11 +33,13 @@ export const OrderHistoryTable = ({ orders }: OrderHistoryTableProps) => {
               <th className="px-2 pb-2 font-medium text-right">Quantity</th>
               <th className="px-2 pb-2 font-medium text-right">Price</th>
               <th className="px-2 pb-2 font-medium text-right">Total</th>
+              <th className="px-2 pb-2 font-medium text-right">Status</th>
             </tr>
           </thead>
           <tbody>
             {sorted.map(order => {
               const badge = BADGE[order.type]
+              const statusBadge = STATUS_BADGE[order.status]
               return (
                 <tr key={order.id} className="border-b border-gray-100 last:border-0">
                   <td className="px-2 py-2.5 text-gray-600">
@@ -52,6 +60,14 @@ export const OrderHistoryTable = ({ orders }: OrderHistoryTableProps) => {
                   </td>
                   <td className="px-2 py-2.5 text-right font-semibold text-gray-900">
                     ${order.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </td>
+                  <td className="px-2 py-2.5 text-right">
+                    <span
+                      className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold text-white"
+                      style={{ backgroundColor: statusBadge.color }}
+                    >
+                      {statusBadge.label}
+                    </span>
                   </td>
                 </tr>
               )

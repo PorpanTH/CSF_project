@@ -103,7 +103,7 @@ PortfolioItem {
 
 ## 🚀 Development Roadmap
 
-### Phase 1: Frontend Development (Completed ✅)
+### Phase 1: Frontend Development
 - [x] React application structure
 - [x] Component library (cards, charts, forms)
 - [x] Page layouts (dashboard, portfolio, add/edit)
@@ -111,9 +111,9 @@ PortfolioItem {
 - [x] Mock data for testing
 - [x] Form validation
 - [x] Error handling
-- [x] Documentation
+- [ ] Documentation
 
-### Phase 2: Backend API (Ready to Build)
+### Phase 2: Backend API
 - [ ] Flask app setup
 - [ ] Database models
 - [ ] API endpoints (CRUD operations)

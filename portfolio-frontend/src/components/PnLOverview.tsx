@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown } from 'lucide-react'
+import { TrendingDown, TrendingUp } from 'lucide-react'
 import { PnLByAssetClass } from '../types'
 import { STATUS } from '../theme/colors'
 
@@ -18,18 +18,16 @@ const SignedValue = ({ value }: { value: number }) => (
 const HeroTile = ({ label, value }: { label: string; value: number }) => {
   const positive = value >= 0
   return (
-    <div className="card border-l-4" style={{ borderColor: positive ? STATUS.good : STATUS.critical }}>
-      <div className="flex justify-between items-start">
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-gray-600 text-sm font-medium">{label}</p>
-          <p className="text-3xl font-bold mt-2" style={{ color: positive ? STATUS.goodText : STATUS.critical }}>
+          <p className="text-sm font-medium text-gray-500">{label}</p>
+          <p className="text-2xl font-semibold mt-2" style={{ color: positive ? STATUS.goodText : STATUS.critical }}>
             {fmt(value)}
           </p>
         </div>
-        <div className="p-3 rounded-lg" style={{ backgroundColor: positive ? '#eafbea' : '#fdecec' }}>
-          {positive
-            ? <TrendingUp size={22} style={{ color: STATUS.good }} />
-            : <TrendingDown size={22} style={{ color: STATUS.critical }} />}
+        <div className="rounded-xl p-2.5" style={{ backgroundColor: positive ? '#eafbea' : '#fdecec' }}>
+          {positive ? <TrendingUp size={18} style={{ color: STATUS.good }} /> : <TrendingDown size={18} style={{ color: STATUS.critical }} />}
         </div>
       </div>
     </div>
@@ -37,22 +35,42 @@ const HeroTile = ({ label, value }: { label: string; value: number }) => {
 }
 
 export const PnLOverview = ({ breakdown, totals }: PnLOverviewProps) => {
+  const totalPositive = totals.total >= 0
+
   return (
-    <div className="mb-8">
-      <div className="flex items-baseline justify-between mb-4">
-        <h2 className="text-2xl font-bold text-gray-900">Profit &amp; Loss Overview</h2>
-        <p className="text-sm text-gray-500">Realized (closed) vs. floating (mark-to-market) P/L</p>
+    <div className="card border border-slate-200">
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Performance summary</p>
+          <h2 className="text-2xl font-bold text-gray-900 mt-2">Profit &amp; Loss overview</h2>
+        </div>
+        <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
+          Realized vs floating
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <HeroTile label="Total P/L" value={totals.total} />
-        <HeroTile label="Realized P/L" value={totals.realized} />
-        <HeroTile label="Floating P/L" value={totals.floating} />
+      <div className="grid gap-4 xl:grid-cols-[1.25fr,0.75fr]">
+        <div className="rounded-3xl border border-slate-200 bg-slate-950 p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-400">Total P/L</p>
+              <p className="text-4xl font-semibold mt-2">{fmt(totals.total)}</p>
+            </div>
+            <div className="rounded-full bg-white/10 p-3">
+              {totalPositive ? <TrendingUp size={20} className="text-emerald-400" /> : <TrendingDown size={20} className="text-rose-400" />}
+            </div>
+          </div>
+          <p className="mt-5 text-sm text-slate-400">Combined performance across all open and closed positions in the portfolio.</p>
+        </div>
+        <div className="grid gap-4">
+          <HeroTile label="Realized P/L" value={totals.realized} />
+          <HeroTile label="Floating P/L" value={totals.floating} />
+        </div>
       </div>
 
-      <div className="card overflow-x-auto">
-        <h3 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">Breakdown by Asset Class</h3>
-        <table className="w-full text-sm">
+      <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 overflow-x-auto">
+        <h3 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">Breakdown by asset class</h3>
+        <table className="w-full text-sm min-w-[420px]">
           <thead>
             <tr className="border-b border-gray-200 text-left text-gray-500">
               <th className="pb-2 font-medium">Asset Class</th>
