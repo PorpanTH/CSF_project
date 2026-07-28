@@ -1,7 +1,7 @@
 export interface PortfolioItem {
   id: string
   portfolioId: string
-  itemType: 'stock' | 'bond' | 'cash'
+  itemType: 'stock' | 'bond' | 'cash' | 'etf' | 'other'
   ticker: string
   quantity: number
   purchasePrice: number
@@ -13,6 +13,17 @@ export interface PortfolioItem {
   region: string
   realizedPnL: number
   priceHistory: number[]
+}
+
+export interface Order {
+  id: string
+  type: 'buy' | 'sell' | 'withdrawal'
+  ticker?: string
+  quantity?: number
+  price?: number
+  total: number
+  date: string
+  status: 'completed' | 'pending' | 'processing'
 }
 
 export interface Portfolio {
@@ -34,7 +45,7 @@ export interface PortfolioMetrics {
 }
 
 export interface AllocationData {
-  type: 'stock' | 'bond' | 'cash'
+  type: 'stock' | 'bond' | 'cash' | 'etf' | 'other'
   value: number
   percentage: number
   count: number
@@ -61,7 +72,7 @@ export interface PnLSeriesPoint {
 
 export interface HoldingFluctuation {
   ticker: string
-  itemType: 'stock' | 'bond' | 'cash'
+  itemType: 'stock' | 'bond' | 'cash' | 'etf' | 'other'
   quantity: number
   currentPrice: number
   changePercent: number
@@ -78,14 +89,3 @@ export interface MarketEquity {
   priceHistory: number[]
 }
 
-export type OrderType = 'buy' | 'sell' | 'withdrawal'
-
-export interface Order {
-  id: string
-  type: OrderType
-  ticker?: string
-  quantity?: number
-  price?: number
-  total: number
-  date: string
-}

@@ -27,8 +27,16 @@ export const PerformanceChart = ({ data }: PerformanceChartProps) => {
   }
 
   return (
-    <div className="card">
-      <h3 className="text-lg font-bold text-gray-900 mb-4">Portfolio Value (30 Days)</h3>
+    <div className="card border border-slate-200">
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <h3 className="text-lg font-bold text-gray-900">Accumulated P&amp;L</h3>
+          <p className="text-sm text-gray-500 mt-1">Performance trend across the last 30 sessions</p>
+        </div>
+        <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
+          Live view
+        </div>
+      </div>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={data} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />

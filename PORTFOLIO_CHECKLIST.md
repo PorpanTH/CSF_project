@@ -178,7 +178,6 @@ Transactions (optional)
 - [ ] Connect to Flask backend API
 
 ### Phase 2: Enhancement
-- [ ] User authentication
 - [ ] Real stock price data integration
 - [ ] Portfolio performance tracking
 - [ ] Historical data and trends
@@ -188,21 +187,6 @@ Transactions (optional)
 - [ ] Portfolio optimization recommendations
 - [ ] Risk analysis and metrics
 - [ ] Dividend tracking
-- [ ] Tax reporting
-- [ ] Mobile app (React Native)
-
----
-
-## 🔒 Security Considerations
-
-- [ ] Input validation on all forms
-- [ ] XSS protection (React handles most automatically)
-- [ ] CSRF tokens for state-changing requests
-- [ ] HTTPS in production
-- [ ] Secure storage of JWT tokens (httpOnly cookies)
-- [ ] Rate limiting on API endpoints
-- [ ] SQL injection prevention (use ORM)
-- [ ] Environment variables for sensitive config
 
 ---
 
@@ -212,7 +196,6 @@ Transactions (optional)
 - [ ] Integration tests (API mocking)
 - [ ] E2E tests (Cypress/Playwright)
 - [ ] Performance testing
-- [ ] Accessibility testing (axe DevTools)
 
 ---
 
@@ -221,8 +204,6 @@ Transactions (optional)
 ### Frontend
 - [ ] Build optimization
 - [ ] Environment variable configuration
-- [ ] CDN setup for static assets
-- [ ] Deployment platform (Vercel, Netlify, GitHub Pages)
 
 ### Backend
 - [ ] Database migration setup

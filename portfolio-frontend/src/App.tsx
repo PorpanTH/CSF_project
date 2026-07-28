@@ -1,10 +1,9 @@
 import { useMemo, useState } from 'react'
+import { ArrowUpRight, Briefcase, PieChart, Wallet } from 'lucide-react'
 import { PnLOverview } from './components/PnLOverview'
 import { PieBreakdownChart } from './components/PieBreakdownChart'
 import { AccumulatedPnLChart } from './components/AccumulatedPnLChart'
 import { HoldingsFluctuationList } from './components/HoldingsFluctuationList'
-import { BalanceCard } from './components/BalanceCard'
-import { MarketExplorer } from './components/MarketExplorer'
 import { OrderHistoryTable } from './components/OrderHistoryTable'
 import { TradeModal } from './components/TradeModal'
 import { WithdrawModal } from './components/WithdrawModal'
@@ -14,127 +13,260 @@ import {
   getPnLByAssetClass,
   getTotalPnL,
   getAssetClassSlices,
-  getSectorSlices,
   getRegionSlices,
   getHoldingsFluctuations,
-  getMarketEquities,
 } from './services/mockData'
-import { PortfolioItem, MarketEquity, Order } from './types'
+import { PortfolioItem, Order } from './types'
 
-interface TradeModalState {
-  mode: 'buy' | 'sell'
+type BreakdownMode = 'allocation' | 'region' | 'country'
+type ProductCategory = 'stock' | 'bond' | 'etf' | 'other'
+
+interface ProductOption {
+  id: string
+  category: ProductCategory
   ticker: string
-  name?: string
+  name: string
   price: number
-  maxQuantity?: number
+  sector: string
+  region: string
+  description: string
 }
 
 const uid = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
+const PRODUCT_OPTIONS: ProductOption[] = [
+  { id: 'aapl', category: 'stock', ticker: 'AAPL', name: 'Apple Inc.', price: 228.45, sector: 'Technology', region: 'North America', description: 'Mega-cap growth leader' },
+  { id: 'msft', category: 'stock', ticker: 'MSFT', name: 'Microsoft Corp.', price: 417.89, sector: 'Technology', region: 'North America', description: 'Enterprise cloud and software' },
+  { id: 'voo', category: 'etf', ticker: 'VOO', name: 'Vanguard S&P 500 ETF', price: 412.18, sector: 'Diversified Equity', region: 'North America', description: 'Broad equity market exposure' },
+  { id: 'agg', category: 'bond', ticker: 'AGG', name: 'iShares Core Bond ETF', price: 95.75, sector: 'Fixed Income', region: 'North America', description: 'Core fixed-income allocation' },
+  { id: 'alt', category: 'other', ticker: 'ALT', name: 'Private Credit Fund', price: 102.60, sector: 'Alternative Credit', region: 'Europe', description: 'Higher-income alternative sleeve' },
+]
+
 export default function App() {
   const [items, setItems] = useState<PortfolioItem[]>(() => getMockPortfolioById('1')!.items)
   const [orders, setOrders] = useState<Order[]>([])
-  const [extraRealized, setExtraRealized] = useState<Record<string, number>>({})
-  const [tradeModal, setTradeModal] = useState<TradeModalState | null>(null)
-  const [showWithdraw, setShowWithdraw] = useState(false)
+  const [activeTrade, setActiveTrade] = useState<{
+    mode: 'buy' | 'sell'
+    ticker: string
+    itemType?: PortfolioItem['itemType']
+    name?: string
+    price: number
+    maxQuantity?: number
+    availableBalance?: number
+    sector?: string
+    region?: string
+  } | null>(null)
+  const [withdrawOpen, setWithdrawOpen] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
+  const [selectedBreakdown, setSelectedBreakdown] = useState<BreakdownMode>('allocation')
+  const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('stock')
 
-  const marketEquities = useMemo<MarketEquity[]>(() => getMarketEquities(), [])
-
+  const cashItem = items.find(i => i.itemType === 'cash')
   const cashBalance = useMemo(
     () => items.filter(i => i.itemType === 'cash').reduce((s, i) => s + i.quantity * i.currentPrice, 0),
     [items]
   )
-  const pnlByAssetClass = useMemo(() => getPnLByAssetClass(items, extraRealized), [items, extraRealized])
-  const totals = useMemo(() => getTotalPnL(items, extraRealized), [items, extraRealized])
-  const allocationSlices = useMemo(() => getAssetClassSlices(items), [items])
-  const sectorSlices = useMemo(() => getSectorSlices(items), [items])
-  const regionSlices = useMemo(() => getRegionSlices(items), [items])
+  const totalPortfolioValue = useMemo(
+    () => items.reduce((sum, item) => sum + item.quantity * item.currentPrice, 0),
+    [items]
+  )
+  const pnlByAssetClass = useMemo(() => getPnLByAssetClass(items), [items])
+  const totals = useMemo(() => getTotalPnL(items), [items])
   const holdings = useMemo(() => getHoldingsFluctuations(items), [items])
 
-  const openBuy = (equity: MarketEquity) =>
-    setTradeModal({ mode: 'buy', ticker: equity.ticker, name: equity.name, price: equity.price })
+  const sortedOrders = useMemo(
+    () => [...orders].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [orders]
+  )
 
-  const openSell = (ticker: string) => {
-    const item = items.find(i => i.ticker === ticker && i.itemType === 'stock')
-    if (!item) return
-    setTradeModal({ mode: 'sell', ticker, price: item.currentPrice, maxQuantity: item.quantity })
+  const orderCounts = useMemo(() => {
+    return orders.reduce(
+      (acc, order) => ({
+        processing: acc.processing + (order.status === 'processing' ? 1 : 0),
+        completed: acc.completed + (order.status === 'completed' ? 1 : 0),
+        pending: acc.pending + (order.status === 'pending' ? 1 : 0),
+      }),
+      { processing: 0, completed: 0, pending: 0 }
+    )
+  }, [orders])
+
+  const createOrder = (order: Omit<Order, 'id' | 'status'>) => {
+    const id = uid('order')
+    const newOrder: Order = { ...order, id, status: 'processing' }
+    setOrders(prev => [newOrder, ...prev])
+    window.setTimeout(() => {
+      setOrders(prev => prev.map(o => o.id === id ? { ...o, status: 'completed' } : o))
+    }, 1200)
+  }
+
+  const completeOrder = (order: Omit<Order, 'id' | 'status'>) => {
+    createOrder(order)
   }
 
   const handleConfirmTrade = (quantity: number) => {
-    if (!tradeModal) return
-    const { mode, ticker, price } = tradeModal
-    const total = quantity * price
+    if (!activeTrade) return
+
+    const { mode, ticker, price, maxQuantity } = activeTrade
+    const timestamp = new Date().toISOString()
 
     if (mode === 'buy') {
-      const cashItem = items.find(i => i.itemType === 'cash')
-      if (!cashItem || cashItem.quantity < total) {
-        setToast({ message: 'Insufficient available balance', type: 'error' })
+      const totalCost = quantity * price
+      if (totalCost > cashBalance) {
+        setToast({ message: 'Insufficient cash balance for this trade.', type: 'error' })
+        setActiveTrade(null)
         return
       }
 
-      const existing = items.find(i => i.ticker === ticker && i.itemType === 'stock')
-      let nextItems: PortfolioItem[]
-
+      const itemType = activeTrade.itemType ?? 'stock'
+      const existing = items.find(i => i.ticker === ticker && i.itemType === itemType)
+      let nextItems = items.map(i => i.itemType === 'cash' ? { ...i, quantity: Number((i.quantity - totalCost).toFixed(2)) } : i)
       if (existing) {
         const newQty = existing.quantity + quantity
         const newAvgCost = (existing.purchasePrice * existing.quantity + price * quantity) / newQty
-        nextItems = items.map(i => i.id === existing.id ? { ...i, quantity: newQty, purchasePrice: newAvgCost, currentPrice: price } : i)
+        nextItems = nextItems.map(i => i.id === existing.id
+          ? { ...i, quantity: newQty, purchasePrice: Number(newAvgCost.toFixed(2)), currentPrice: price, updatedAt: timestamp, priceHistory: [...i.priceHistory.slice(-29), price] }
+          : i
+        )
       } else {
-        const marketEq = marketEquities.find(e => e.ticker === ticker)
-        const newItem: PortfolioItem = {
-          id: uid('item'),
-          portfolioId: '1',
-          itemType: 'stock',
-          ticker,
-          quantity,
-          purchasePrice: price,
-          purchaseDate: new Date().toISOString().slice(0, 10),
-          currentPrice: price,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          sector: marketEq?.sector ?? 'Unclassified',
-          region: marketEq?.region ?? 'Unclassified',
-          realizedPnL: 0,
-          priceHistory: marketEq?.priceHistory ?? [price],
-        }
-        nextItems = [...items, newItem]
+        nextItems = [
+          ...nextItems,
+          {
+            id: uid('item'),
+            portfolioId: '1',
+            itemType,
+            ticker,
+            quantity,
+            purchasePrice: price,
+            purchaseDate: new Date().toISOString().slice(0, 10),
+            currentPrice: price,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+            sector: activeTrade.sector ?? 'Unknown',
+            region: activeTrade.region ?? 'Unknown',
+            realizedPnL: 0,
+            priceHistory: [price],
+          },
+        ]
       }
 
-      nextItems = nextItems.map(i => i.itemType === 'cash' ? { ...i, quantity: i.quantity - total } : i)
       setItems(nextItems)
-      setOrders(prev => [...prev, { id: uid('order'), type: 'buy', ticker, quantity, price, total, date: new Date().toISOString() }])
-      setToast({ message: `Bought ${quantity} share${quantity === 1 ? '' : 's'} of ${ticker}`, type: 'success' })
-    } else {
-      const existing = items.find(i => i.ticker === ticker && i.itemType === 'stock')
-      if (!existing || quantity > existing.quantity) {
-        setToast({ message: 'Invalid sell quantity', type: 'error' })
+      completeOrder({ type: 'buy', ticker, quantity, price, total: totalCost, date: timestamp })
+      setToast({ message: `Placed buy order for ${quantity} ${ticker}.`, type: 'success' })
+    }
+
+    if (mode === 'sell') {
+      const item = items.find(i => i.ticker === ticker && i.itemType !== 'cash')
+      if (!item || !item.quantity) {
+        setToast({ message: 'No holdings found to sell.', type: 'error' })
+        setActiveTrade(null)
         return
       }
-      const realizedGain = (price - existing.purchasePrice) * quantity
-      let nextItems = quantity === existing.quantity
-        ? items.filter(i => i.id !== existing.id)
-        : items.map(i => i.id === existing.id ? { ...i, quantity: i.quantity - quantity } : i)
-      nextItems = nextItems.map(i => i.itemType === 'cash' ? { ...i, quantity: i.quantity + total } : i)
+      if (quantity > (maxQuantity ?? 0)) {
+        setToast({ message: 'Sell quantity exceeds holdings.', type: 'error' })
+        setActiveTrade(null)
+        return
+      }
+
+      const proceeds = quantity * price
+      const costBasis = quantity * item.purchasePrice
+      const realizedGain = proceeds - costBasis
+      const nextItems = items.flatMap(i => {
+        if (i.id !== item.id) return [i]
+        const remaining = i.quantity - quantity
+        if (remaining <= 0) return []
+        return [{
+          ...i,
+          quantity: remaining,
+          realizedPnL: Number((i.realizedPnL + realizedGain).toFixed(2)),
+          updatedAt: timestamp,
+          priceHistory: [...i.priceHistory.slice(-29), price],
+        }]
+      }).map(i => i.itemType === 'cash' ? { ...i, quantity: Number((i.quantity + proceeds).toFixed(2)) } : i)
 
       setItems(nextItems)
-      setExtraRealized(prev => ({ ...prev, Stocks: (prev.Stocks ?? 0) + realizedGain }))
-      setOrders(prev => [...prev, { id: uid('order'), type: 'sell', ticker, quantity, price, total, date: new Date().toISOString() }])
-      setToast({ message: `Sold ${quantity} share${quantity === 1 ? '' : 's'} of ${ticker}`, type: 'success' })
+      completeOrder({ type: 'sell', ticker, quantity, price, total: proceeds, date: timestamp })
+      setToast({ message: `Placed sell order for ${quantity} ${ticker}.`, type: 'success' })
     }
-    setTradeModal(null)
+
+    setActiveTrade(null)
   }
 
-  const handleWithdraw = (amount: number) => {
-    const cashItem = items.find(i => i.itemType === 'cash')
-    if (!cashItem || amount > cashItem.quantity) {
-      setToast({ message: 'Amount exceeds available balance', type: 'error' })
+  const openBuyModal = (product: ProductOption) => {
+    setActiveTrade({
+      mode: 'buy',
+      ticker: product.ticker,
+      itemType: normaliseItemType(product.category),
+      name: product.name,
+      price: product.price,
+      availableBalance: cashBalance,
+      sector: product.sector,
+      region: product.region,
+    })
+  }
+
+  const openSellModal = (ticker: string) => {
+    const item = items.find(i => i.ticker === ticker && i.itemType !== 'cash')
+    if (!item) {
+      setToast({ message: 'No holding found for this security.', type: 'error' })
       return
     }
-    setItems(items.map(i => i.itemType === 'cash' ? { ...i, quantity: i.quantity - amount } : i))
-    setOrders(prev => [...prev, { id: uid('order'), type: 'withdrawal', total: amount, date: new Date().toISOString() }])
-    setToast({ message: `Withdrew $${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, type: 'success' })
-    setShowWithdraw(false)
+
+    setActiveTrade({
+      mode: 'sell',
+      ticker: item.ticker,
+      price: item.currentPrice,
+      maxQuantity: item.quantity,
+      name: item.ticker,
+    })
+  }
+
+  const handleWithdrawConfirm = (amount: number) => {
+    if (!cashItem) {
+      setToast({ message: 'Cash account not available.', type: 'error' })
+      setWithdrawOpen(false)
+      return
+    }
+    if (amount > cashItem.quantity) {
+      setToast({ message: 'Withdrawal exceeds available cash.', type: 'error' })
+      setWithdrawOpen(false)
+      return
+    }
+
+    const nextItems = items.map(i => i.itemType === 'cash' ? { ...i, quantity: Number((i.quantity - amount).toFixed(2)) } : i)
+    setItems(nextItems)
+    createOrder({ type: 'withdrawal', total: amount, date: new Date().toISOString() })
+    setToast({ message: `Withdrew $${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}.`, type: 'success' })
+    setWithdrawOpen(false)
+  }
+
+  const breakdownData = useMemo(() => {
+    switch (selectedBreakdown) {
+      case 'region':
+        return getRegionSlices(items)
+      case 'country':
+        return getRegionSlices(items)
+      default:
+        return getAssetClassSlices(items)
+    }
+  }, [items, selectedBreakdown])
+
+  const breakdownTitle = selectedBreakdown === 'allocation'
+    ? 'Asset class breakdown'
+    : selectedBreakdown === 'region'
+      ? 'Regional allocation'
+      : 'Country exposure'
+
+  const normaliseItemType = (category: ProductCategory): PortfolioItem['itemType'] => {
+    switch (category) {
+      case 'bond':
+        return 'bond'
+      case 'etf':
+        return 'etf'
+      case 'other':
+        return 'other'
+      default:
+        return 'stock'
+    }
   }
 
   return (
@@ -152,56 +284,247 @@ export default function App() {
                 <p className="text-xs text-red-100">Financial Portfolio Management</p>
               </div>
             </div>
-            <nav className="flex gap-4">
-              <button className="px-4 py-2 text-white bg-white/10 hover:bg-white/20 rounded-lg transition-colors">
-                Dashboard
-              </button>
-              <button className="px-4 py-2 text-white hover:bg-white/10 rounded-lg transition-colors">
-                Portfolios
-              </button>
-            </nav>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900">Primary Investment Portfolio</h1>
-          <p className="text-gray-600 mt-2">P/L, allocation, holdings, and trading for your current portfolio</p>
-        </div>
-
-        {/* Part 1: P/L overview */}
-        <PnLOverview breakdown={pnlByAssetClass} totals={totals} />
-
-        {/* Part 1: allocation / sector / region breakdown */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Portfolio Composition</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <PieBreakdownChart title="Allocation" data={allocationSlices} />
-            <PieBreakdownChart title="Sector" data={sectorSlices} />
-            <PieBreakdownChart title="Region" data={regionSlices} />
+        <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-blue-600">Portfolio command center</p>
+            <h1 className="text-4xl font-bold text-gray-900 mt-2">Primary Investment Portfolio</h1>
+            <p className="text-gray-600 mt-2">P/L, allocation, holdings, and execution-ready product ideas for your current portfolio.</p>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+            <Briefcase size={16} />
+            Live mock portfolio
           </div>
         </div>
 
-        {/* Part 1: accumulated P/L over time */}
-        <AccumulatedPnLChart endValue={totals.total} />
-
-        {/* Part 2: equity fluctuations + sell */}
-        <div className="mb-8">
-          <HoldingsFluctuationList holdings={holdings} onSell={openSell} />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-8">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Net asset value</p>
+                <p className="text-2xl font-semibold text-gray-900 mt-2">${totalPortfolioValue.toLocaleString('en-US', { minimumFractionDigits: 0 })}</p>
+              </div>
+              <div className="rounded-2xl bg-blue-50 p-3 text-blue-600"><Wallet size={20} /></div>
+            </div>
+          </div>
+          <div className="rounded-3xl border border-slate-200 bg-white p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Cash balance</p>
+                <p className="text-2xl font-semibold text-gray-900 mt-2">${cashBalance.toLocaleString('en-US', { minimumFractionDigits: 0 })}</p>
+              </div>
+              <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-600"><ArrowUpRight size={20} /></div>
+            </div>
+          </div>
+          <div className="rounded-3xl border border-slate-200 bg-white p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Total P/L</p>
+                <p className={`text-2xl font-semibold mt-2 ${totals.total >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>${totals.total.toLocaleString('en-US', { minimumFractionDigits: 0 })}</p>
+              </div>
+              <div className={`rounded-2xl p-3 ${totals.total >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}><ArrowUpRight size={20} /></div>
+            </div>
+          </div>
+          <div className="rounded-3xl border border-slate-200 bg-white p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Tracked assets</p>
+                <p className="text-2xl font-semibold text-gray-900 mt-2">{items.length}</p>
+              </div>
+              <div className="rounded-2xl bg-violet-50 p-3 text-violet-600"><PieChart size={20} /></div>
+            </div>
+          </div>
         </div>
 
-        {/* Trading: balance, market, order history */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Trade</h2>
+        <div className="grid gap-6 xl:grid-cols-[1.15fr,0.85fr] mb-8">
           <div className="space-y-6">
-            <BalanceCard balance={cashBalance} onWithdraw={() => setShowWithdraw(true)} />
-            <MarketExplorer equities={marketEquities} onBuy={openBuy} />
+            <PnLOverview breakdown={pnlByAssetClass} totals={totals} />
+            <div className="card border border-slate-200">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Allocation view</p>
+                  <h2 className="text-xl font-bold text-gray-900 mt-2">Portfolio composition</h2>
+                </div>
+                <div className="inline-flex rounded-full bg-slate-100 p-1">
+                  {(['allocation', 'region', 'country'] as BreakdownMode[]).map(mode => (
+                    <button
+                      key={mode}
+                      onClick={() => setSelectedBreakdown(mode)}
+                      className={`rounded-full px-3 py-1.5 text-sm font-medium capitalize transition ${selectedBreakdown === mode ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                    >
+                      {mode}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <PieBreakdownChart title={breakdownTitle} data={breakdownData} />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div className="card border border-slate-200 p-6 sticky top-24">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Order dialog</p>
+                  <h2 className="text-xl font-bold text-gray-900 mt-2">Execution status</h2>
+                </div>
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  Live orders
+                </span>
+              </div>
+
+              <div className="grid gap-3 mt-6 sm:grid-cols-3">
+                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-center">
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Processing</p>
+                  <p className="mt-2 text-2xl font-semibold text-orange-600">{orderCounts.processing}</p>
+                </div>
+                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-center">
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Completed</p>
+                  <p className="mt-2 text-2xl font-semibold text-emerald-600">{orderCounts.completed}</p>
+                </div>
+                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-center">
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Pending</p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-700">{orderCounts.pending}</p>
+                </div>
+              </div>
+
+              <div className="mt-6 space-y-3">
+                {sortedOrders.slice(0, 4).map(order => (
+                  <div key={order.id} className="rounded-3xl border border-slate-200 bg-white p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">{order.type === 'withdrawal' ? 'Withdrawal' : `${order.type.toUpperCase()} ${order.ticker}`}</p>
+                        <p className="text-xs text-slate-500">{new Date(order.date).toLocaleString()}</p>
+                      </div>
+                      <span className={`px-2.5 py-1 text-[11px] font-semibold uppercase rounded-full ${order.status === 'processing' ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                        {order.status}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between text-sm text-slate-600">
+                      <span>{order.quantity ?? '—'} units</span>
+                      <span className="font-semibold text-gray-900">${order.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                ))}
+                {sortedOrders.length === 0 && (
+                  <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-gray-500">
+                    No orders yet. Trades will appear here as you execute them.
+                  </div>
+                )}
+              </div>
+            </div>
+
             <OrderHistoryTable orders={orders} />
           </div>
         </div>
+
+        <div className="grid gap-6 xl:grid-cols-[1.1fr,0.9fr] mb-8">
+          <div className="card border border-slate-200 p-0 overflow-hidden">
+            <div className="px-6 py-5 border-b border-slate-100">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Performance trend</p>
+                  <h2 className="text-xl font-bold text-gray-900 mt-2">Accumulated P/L</h2>
+                </div>
+                <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  Live curve
+                </div>
+              </div>
+            </div>
+            <div className="p-6">
+              <AccumulatedPnLChart endValue={totals.total} />
+            </div>
+          </div>
+          <HoldingsFluctuationList holdings={holdings} onSell={openSellModal} />
+        </div>
+
+        <div className="card border border-slate-200">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Buy flow</p>
+              <h2 className="text-2xl font-bold text-gray-900 mt-2">Add new positions to the portfolio</h2>
+              <p className="text-gray-600 mt-2">Choose a product type and mock in a position for your demo portfolio.</p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="inline-flex rounded-full bg-slate-100 p-1">
+                {(['stock', 'bond', 'etf', 'other'] as ProductCategory[]).map(category => (
+                  <button
+                    key={category}
+                    onClick={() => setSelectedCategory(category)}
+                    className={`rounded-full px-3 py-1.5 text-sm font-medium capitalize transition ${selectedCategory === category ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setWithdrawOpen(true)}
+                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
+              >
+                Withdraw cash
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {PRODUCT_OPTIONS.filter(product => product.category === selectedCategory).map(product => (
+              <div key={product.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{product.name}</p>
+                    <p className="text-xs uppercase tracking-wide text-slate-500">{product.ticker}</p>
+                  </div>
+                  <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">{product.category}</span>
+                </div>
+                <p className="mt-3 text-sm text-gray-600">{product.description}</p>
+                <div className="mt-4 flex items-center justify-between text-sm text-slate-600">
+                  <span>Reference price</span>
+                  <span className="font-semibold text-gray-900">${product.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <button
+                  onClick={() => openBuyModal(product)}
+                  className="mt-4 w-full rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+                >
+                  Buy shares
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
+            Mock purchases are stored locally in the page state so you can preview the portfolio experience before live data is wired in.
+          </div>
+        </div>
       </main>
+
+      {activeTrade && (
+        <TradeModal
+          mode={activeTrade.mode}
+          ticker={activeTrade.ticker}
+          name={activeTrade.name}
+          price={activeTrade.price}
+          maxQuantity={activeTrade.maxQuantity}
+          availableBalance={activeTrade.availableBalance}
+          onConfirm={handleConfirmTrade}
+          onClose={() => setActiveTrade(null)}
+        />
+      )}
+
+      {withdrawOpen && cashItem && (
+        <WithdrawModal
+          balance={cashItem.quantity}
+          onConfirm={handleWithdrawConfirm}
+          onClose={() => setWithdrawOpen(false)}
+        />
+      )}
 
       {/* Footer */}
       <footer className="bg-gray-900 text-gray-300 text-sm py-6 mt-12 border-t border-gray-800">
@@ -211,27 +534,6 @@ export default function App() {
           </p>
         </div>
       </footer>
-
-      {tradeModal && (
-        <TradeModal
-          mode={tradeModal.mode}
-          ticker={tradeModal.ticker}
-          name={tradeModal.name}
-          price={tradeModal.price}
-          maxQuantity={tradeModal.maxQuantity}
-          availableBalance={tradeModal.mode === 'buy' ? cashBalance : undefined}
-          onConfirm={handleConfirmTrade}
-          onClose={() => setTradeModal(null)}
-        />
-      )}
-
-      {showWithdraw && (
-        <WithdrawModal
-          balance={cashBalance}
-          onConfirm={handleWithdraw}
-          onClose={() => setShowWithdraw(false)}
-        />
-      )}
 
       {toast && (
         <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />

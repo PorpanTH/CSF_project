@@ -18,6 +18,8 @@ export const PortfolioItemRow = ({ item, onEdit, onDelete }: PortfolioItemRowPro
     stock: 'bg-blue-100 text-blue-800',
     bond: 'bg-green-100 text-green-800',
     cash: 'bg-gray-100 text-gray-800',
+    etf: 'bg-violet-100 text-violet-800',
+    other: 'bg-amber-100 text-amber-800',
   }
 
   return (

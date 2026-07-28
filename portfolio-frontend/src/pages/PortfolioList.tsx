@@ -17,11 +17,13 @@ export const PortfolioList = () => {
 
   const loadPortfolios = async () => {
     try {
-      setIsLoading(false)
+      setIsLoading(true)
       const data = await portfolioAPI.getAll()
       setPortfolios(data)
     } catch (error) {
       setToast({ message: 'Failed to load portfolios', type: 'error' })
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -86,7 +88,9 @@ export const PortfolioList = () => {
         )}
 
         <div className="card">
-          {portfolios.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-12 text-gray-600">Loading portfolios…</div>
+          ) : portfolios.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-600 mb-4">You haven't created any portfolios yet.</p>
               <Link to="/add-portfolio" className="btn-primary inline-block">
