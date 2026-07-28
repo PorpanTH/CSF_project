@@ -6,9 +6,11 @@ import { STATUS, BRAND } from '../theme/colors'
 interface MarketExplorerProps {
   equities: MarketEquity[]
   onBuy: (equity: MarketEquity) => void
+  onDetails?: (equity: MarketEquity) => void
 }
 
 type SortKey = 'name' | 'price' | 'changePercent' | 'sector'
+type ProductCategory = 'stock' | 'bond' | 'etf' | 'other' | 'all'
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: 'name', label: 'Name' },
@@ -17,16 +19,37 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: 'sector', label: 'Sector' },
 ]
 
-export const MarketExplorer = ({ equities, onBuy }: MarketExplorerProps) => {
+const PRODUCT_CATEGORIES: { id: ProductCategory; label: string }[] = [
+  { id: 'all', label: 'All Products' },
+  { id: 'stock', label: 'Stocks' },
+  { id: 'bond', label: 'Bonds' },
+  { id: 'etf', label: 'ETFs & ETPs' },
+  { id: 'other', label: 'Alternatives' },
+]
+
+const getCategoryFromName = (name: string): ProductCategory => {
+  const lower = name.toLowerCase()
+  if (lower.includes('etf') || lower.includes('etp')) return 'etf'
+  if (lower.includes('bond')) return 'bond'
+  if (lower.includes('fund')) return 'other'
+  if (lower.includes('credit')) return 'other'
+  return 'stock'
+}
+
+export const MarketExplorer = ({ equities, onBuy, onDetails }: MarketExplorerProps) => {
   const [query, setQuery] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('name')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const [category, setCategory] = useState<ProductCategory>('all')
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    const list = equities.filter(eq =>
-      !q || eq.ticker.toLowerCase().includes(q) || eq.name.toLowerCase().includes(q)
-    )
+    const list = equities.filter(eq => {
+      const matchesSearch = !q || eq.ticker.toLowerCase().includes(q) || eq.name.toLowerCase().includes(q)
+      const eqCategory = getCategoryFromName(eq.name)
+      const matchesCategory = category === 'all' || eqCategory === category
+      return matchesSearch && matchesCategory
+    })
     const sorted = [...list].sort((a, b) => {
       const av = a[sortKey]
       const bv = b[sortKey]
@@ -34,7 +57,7 @@ export const MarketExplorer = ({ equities, onBuy }: MarketExplorerProps) => {
       return sortDir === 'asc' ? cmp : -cmp
     })
     return sorted
-  }, [equities, query, sortKey, sortDir])
+  }, [equities, query, sortKey, sortDir, category])
 
   const toggleSort = (key: SortKey) => {
     if (key === sortKey) {
@@ -59,6 +82,22 @@ export const MarketExplorer = ({ equities, onBuy }: MarketExplorerProps) => {
             className="input-field pl-9 w-full sm:w-72"
           />
         </div>
+      </div>
+
+      <div className="mb-4 flex flex-wrap gap-2">
+        <span className="text-xs text-gray-500 self-center">Product type:</span>
+        {PRODUCT_CATEGORIES.map(cat => (
+          <button
+            key={cat.id}
+            onClick={() => setCategory(cat.id)}
+            className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
+              category === cat.id ? 'border-transparent text-white' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+            }`}
+            style={category === cat.id ? { backgroundColor: BRAND[700] } : undefined}
+          >
+            {cat.label}
+          </button>
+        ))}
       </div>
 
       <div className="flex gap-2 mb-3 flex-wrap">
@@ -107,7 +146,13 @@ export const MarketExplorer = ({ equities, onBuy }: MarketExplorerProps) => {
                   <td className="px-2 py-2.5 text-right font-medium" style={{ color: positive ? STATUS.goodText : STATUS.critical }}>
                     {positive ? '+' : ''}{eq.changePercent.toFixed(2)}%
                   </td>
-                  <td className="px-2 py-2.5 text-right">
+                  <td className="px-2 py-2.5 text-right flex gap-2 justify-end">
+                    <button
+                      onClick={() => onDetails?.(eq)}
+                      className="px-3 py-1 text-xs font-medium border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                    >
+                      Details
+                    </button>
                     <button
                       onClick={() => onBuy(eq)}
                       className="px-3 py-1 text-xs font-medium text-white rounded-md"
