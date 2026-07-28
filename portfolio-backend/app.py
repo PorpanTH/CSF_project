@@ -1,12 +1,10 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
-from flask_sqlalchemy import SQLAlchemy
 import os
 from dotenv import load_dotenv
+from database.db import db
 
 load_dotenv()
-
-db = SQLAlchemy()
 
 def create_app():
     app = Flask(__name__)
@@ -23,6 +21,10 @@ def create_app():
     db.init_app(app)
     CORS(app, resources={r"/api/*": {"origins": "*"}})
 
+    # Import models
+    from models.user import User
+    from models.portfolio import Portfolio
+
     # Register blueprints
     from routes.auth import auth_bp
     from routes.portfolios import portfolio_bp
@@ -34,7 +36,59 @@ def create_app():
     @app.route('/api/health', methods=['GET'])
     def health():
         return jsonify({'status': 'ok', 'message': 'Portfolio API is running'}), 200
+    
+    @app.route('/api/database', methods=['GET'])
+    def query_demo():
+        try:
+            users = User.query.all()
+            portfolios = Portfolio.query.all()
 
+            portfolio_data = []
+            for portfolio in portfolios:
+                metrics = portfolio.calculate_metrics()
+                items_data = []
+                for item in portfolio.items:
+                    total_value = item.quantity * item.current_price
+                    items_data.append({
+                        'ticker': item.ticker,
+                        'quantity': item.quantity,
+                        'current_price': item.current_price,
+                        'asset_class': item.asset_class,
+                        'total_value': total_value
+                    })
+
+                portfolio_data.append({
+                    'name': portfolio.name,
+                    'owner': portfolio.owner.name if portfolio.owner else 'Unknown',
+                    'items': items_data,
+                    'metrics': {
+                        'totalValue': metrics['totalValue'],
+                        'totalCost': metrics['totalCost'],
+                        'unrealizedPnL': metrics['unrealizedPnL'],
+                        'unrealizedPnLPercent': metrics['unrealizedPnLPercent']
+                    }
+                })
+
+            total_portfolio_value = sum(
+                item.quantity * item.current_price
+                for portfolio in portfolios
+                for item in portfolio.items
+            )
+
+            return jsonify({
+                'success': True,
+                'userCount': len(users),
+                'users': [{'id': u.id, 'name': u.name} for u in users],
+                'portfolios': portfolio_data,
+                'totalPortfolioValue': total_portfolio_value
+            }), 200
+
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+    
     # Error handlers
     @app.errorhandler(404)
     def not_found(error):
