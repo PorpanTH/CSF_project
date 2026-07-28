@@ -3,10 +3,10 @@
 // (needed here because pie slices are all visible at once, not just adjacent).
 // Anything past the top 3 categories folds into "other" rather than adding a 4th hue.
 export const CATEGORICAL = {
-  slot1: '#2a78d6', // blue
-  slot2: '#eb6834', // orange
-  slot3: '#1baf7a', // aqua
-  other: '#9ca3af', // neutral bucket for everything beyond the top 3
+  slot1: '#b91c1c', // deep red
+  slot2: '#dc2626', // strong red
+  slot3: '#ef4444', // bright red
+  other: '#9ca3af', // neutral gray for overflow
 } as const
 
 export const CATEGORICAL_ORDER = [CATEGORICAL.slot1, CATEGORICAL.slot2, CATEGORICAL.slot3, CATEGORICAL.other]

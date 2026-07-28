@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
-import { ArrowUpRight, Briefcase, PieChart, Wallet } from 'lucide-react'
+import { ArrowUpRight, PieChart, Wallet } from 'lucide-react'
 import { PnLOverview } from './components/PnLOverview'
-import { PieBreakdownChart } from './components/PieBreakdownChart'
 import { AccumulatedPnLChart } from './components/AccumulatedPnLChart'
 import { HoldingsFluctuationList } from './components/HoldingsFluctuationList'
+import { MarketExplorer } from './components/MarketExplorer'
+import { OrderDialog } from './components/OrderDialog'
 import { OrderHistoryTable } from './components/OrderHistoryTable'
 import { TradeModal } from './components/TradeModal'
 import { WithdrawModal } from './components/WithdrawModal'
@@ -12,13 +13,10 @@ import {
   getMockPortfolioById,
   getPnLByAssetClass,
   getTotalPnL,
-  getAssetClassSlices,
-  getRegionSlices,
   getHoldingsFluctuations,
 } from './services/mockData'
-import { PortfolioItem, Order } from './types'
+import { PortfolioItem, Order, MarketEquity } from './types'
 
-type BreakdownMode = 'allocation' | 'region' | 'country'
 type ProductCategory = 'stock' | 'bond' | 'etf' | 'other'
 
 interface ProductOption {
@@ -58,8 +56,6 @@ export default function App() {
   } | null>(null)
   const [withdrawOpen, setWithdrawOpen] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
-  const [selectedBreakdown, setSelectedBreakdown] = useState<BreakdownMode>('allocation')
-  const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('stock')
 
   const cashItem = items.find(i => i.itemType === 'cash')
   const cashBalance = useMemo(
@@ -73,22 +69,15 @@ export default function App() {
   const pnlByAssetClass = useMemo(() => getPnLByAssetClass(items), [items])
   const totals = useMemo(() => getTotalPnL(items), [items])
   const holdings = useMemo(() => getHoldingsFluctuations(items), [items])
-
-  const sortedOrders = useMemo(
-    () => [...orders].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
-    [orders]
-  )
-
-  const orderCounts = useMemo(() => {
-    return orders.reduce(
-      (acc, order) => ({
-        processing: acc.processing + (order.status === 'processing' ? 1 : 0),
-        completed: acc.completed + (order.status === 'completed' ? 1 : 0),
-        pending: acc.pending + (order.status === 'pending' ? 1 : 0),
-      }),
-      { processing: 0, completed: 0, pending: 0 }
-    )
-  }, [orders])
+  const marketCatalog = useMemo<MarketEquity[]>(() => PRODUCT_OPTIONS.map(product => ({
+    ticker: product.ticker,
+    name: product.name,
+    sector: product.sector,
+    region: product.region,
+    price: product.price,
+    changePercent: 0,
+    priceHistory: [],
+  })), [])
 
   const createOrder = (order: Omit<Order, 'id' | 'status'>) => {
     const id = uid('order')
@@ -220,6 +209,15 @@ export default function App() {
     })
   }
 
+  const handleExplorerBuy = (equity: MarketEquity) => {
+    const product = PRODUCT_OPTIONS.find(option => option.ticker === equity.ticker)
+    if (product) {
+      openBuyModal(product)
+    } else {
+      setToast({ message: `No market product found for ${equity.ticker}.`, type: 'error' })
+    }
+  }
+
   const handleWithdrawConfirm = (amount: number) => {
     if (!cashItem) {
       setToast({ message: 'Cash account not available.', type: 'error' })
@@ -238,23 +236,6 @@ export default function App() {
     setToast({ message: `Withdrew $${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}.`, type: 'success' })
     setWithdrawOpen(false)
   }
-
-  const breakdownData = useMemo(() => {
-    switch (selectedBreakdown) {
-      case 'region':
-        return getRegionSlices(items)
-      case 'country':
-        return getRegionSlices(items)
-      default:
-        return getAssetClassSlices(items)
-    }
-  }, [items, selectedBreakdown])
-
-  const breakdownTitle = selectedBreakdown === 'allocation'
-    ? 'Asset class breakdown'
-    : selectedBreakdown === 'region'
-      ? 'Regional allocation'
-      : 'Country exposure'
 
   const normaliseItemType = (category: ProductCategory): PortfolioItem['itemType'] => {
     switch (category) {
@@ -292,13 +273,8 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-blue-600">Portfolio command center</p>
-            <h1 className="text-4xl font-bold text-gray-900 mt-2">Primary Investment Portfolio</h1>
+            <h1 className="text-4xl font-bold text-gray-900 mt-2">King Kong Investment Portfolio</h1>
             <p className="text-gray-600 mt-2">P/L, allocation, holdings, and execution-ready product ideas for your current portfolio.</p>
-          </div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
-            <Briefcase size={16} />
-            Live mock portfolio
           </div>
         </div>
 
@@ -341,129 +317,42 @@ export default function App() {
           </div>
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-[1.15fr,0.85fr] mb-8">
+        <div className="grid gap-6 md:grid-cols-2 mb-8">
+          <PnLOverview breakdown={pnlByAssetClass} totals={totals} />
           <div className="space-y-6">
-            <PnLOverview breakdown={pnlByAssetClass} totals={totals} />
             <div className="card border border-slate-200">
               <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Allocation view</p>
-                  <h2 className="text-xl font-bold text-gray-900 mt-2">Portfolio composition</h2>
-                </div>
-                <div className="inline-flex rounded-full bg-slate-100 p-1">
-                  {(['allocation', 'region', 'country'] as BreakdownMode[]).map(mode => (
-                    <button
-                      key={mode}
-                      onClick={() => setSelectedBreakdown(mode)}
-                      className={`rounded-full px-3 py-1.5 text-sm font-medium capitalize transition ${selectedBreakdown === mode ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-                    >
-                      {mode}
-                    </button>
-                  ))}
+              <div className="px-6 py-5 border-b border-slate-100">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Performance trend</p>
+                    <h2 className="text-xl font-bold text-gray-900 mt-2">Accumulated P/L</h2>
+                  </div>
+                  <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                    Live curve
+                  </div>
                 </div>
               </div>
-
-              <div className="mt-6">
-                <PieBreakdownChart title={breakdownTitle} data={breakdownData} />
+              <div className="p-6">
+                <AccumulatedPnLChart endValue={totals.total} />
               </div>
             </div>
-          </div>
-
-          <div className="space-y-6">
-            <div className="card border border-slate-200 p-6 sticky top-24">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Order dialog</p>
-                  <h2 className="text-xl font-bold text-gray-900 mt-2">Execution status</h2>
-                </div>
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Live orders
-                </span>
-              </div>
-
-              <div className="grid gap-3 mt-6 sm:grid-cols-3">
-                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-center">
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Processing</p>
-                  <p className="mt-2 text-2xl font-semibold text-orange-600">{orderCounts.processing}</p>
-                </div>
-                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-center">
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Completed</p>
-                  <p className="mt-2 text-2xl font-semibold text-emerald-600">{orderCounts.completed}</p>
-                </div>
-                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-center">
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Pending</p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-700">{orderCounts.pending}</p>
-                </div>
-              </div>
-
-              <div className="mt-6 space-y-3">
-                {sortedOrders.slice(0, 4).map(order => (
-                  <div key={order.id} className="rounded-3xl border border-slate-200 bg-white p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-gray-900">{order.type === 'withdrawal' ? 'Withdrawal' : `${order.type.toUpperCase()} ${order.ticker}`}</p>
-                        <p className="text-xs text-slate-500">{new Date(order.date).toLocaleString()}</p>
-                      </div>
-                      <span className={`px-2.5 py-1 text-[11px] font-semibold uppercase rounded-full ${order.status === 'processing' ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                        {order.status}
-                      </span>
-                    </div>
-                    <div className="mt-3 flex items-center justify-between text-sm text-slate-600">
-                      <span>{order.quantity ?? '—'} units</span>
-                      <span className="font-semibold text-gray-900">${order.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                    </div>
-                  </div>
-                ))}
-                {sortedOrders.length === 0 && (
-                  <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-gray-500">
-                    No orders yet. Trades will appear here as you execute them.
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <OrderHistoryTable orders={orders} />
           </div>
         </div>
+      </div>
 
-        <div className="grid gap-6 xl:grid-cols-[1.1fr,0.9fr] mb-8">
-          <div className="card border border-slate-200 p-0 overflow-hidden">
-            <div className="px-6 py-5 border-b border-slate-100">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Performance trend</p>
-                  <h2 className="text-xl font-bold text-gray-900 mt-2">Accumulated P/L</h2>
-                </div>
-                <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Live curve
-                </div>
-              </div>
-            </div>
-            <div className="p-6">
-              <AccumulatedPnLChart endValue={totals.total} />
-            </div>
-          </div>
-          <HoldingsFluctuationList holdings={holdings} onSell={openSellModal} />
+        <div className="grid gap-6 md:grid-cols-2 mb-8">
+          <OrderDialog orders={orders} />
+          <OrderHistoryTable orders={orders} />
         </div>
 
-        <div className="card border border-slate-200">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Buy flow</p>
-              <h2 className="text-2xl font-bold text-gray-900 mt-2">Add new positions to the portfolio</h2>
-              <p className="text-gray-600 mt-2">Choose a product type and mock in a position for your demo portfolio.</p>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="inline-flex rounded-full bg-slate-100 p-1">
-                {(['stock', 'bond', 'etf', 'other'] as ProductCategory[]).map(category => (
-                  <button
-                    key={category}
-                    onClick={() => setSelectedCategory(category)}
-                    className={`rounded-full px-3 py-1.5 text-sm font-medium capitalize transition ${selectedCategory === category ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-                  >
-                    {category}
-                  </button>
-                ))}
+        <div className="grid gap-6 md:grid-cols-2 mb-8">
+          <div className="card border border-slate-200">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Buy flow</p>
+                <h2 className="text-2xl font-bold text-gray-900 mt-2">Search and buy financial products</h2>
+                <p className="text-gray-600 mt-2">Search across available products and open a trade for the selected instrument.</p>
               </div>
               <button
                 onClick={() => setWithdrawOpen(true)}
@@ -472,36 +361,13 @@ export default function App() {
                 Withdraw cash
               </button>
             </div>
+
+            <div className="mt-6">
+              <MarketExplorer equities={marketCatalog} onBuy={handleExplorerBuy} />
+            </div>
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {PRODUCT_OPTIONS.filter(product => product.category === selectedCategory).map(product => (
-              <div key={product.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">{product.name}</p>
-                    <p className="text-xs uppercase tracking-wide text-slate-500">{product.ticker}</p>
-                  </div>
-                  <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">{product.category}</span>
-                </div>
-                <p className="mt-3 text-sm text-gray-600">{product.description}</p>
-                <div className="mt-4 flex items-center justify-between text-sm text-slate-600">
-                  <span>Reference price</span>
-                  <span className="font-semibold text-gray-900">${product.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                </div>
-                <button
-                  onClick={() => openBuyModal(product)}
-                  className="mt-4 w-full rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
-                >
-                  Buy shares
-                </button>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
-            Mock purchases are stored locally in the page state so you can preview the portfolio experience before live data is wired in.
-          </div>
+          <HoldingsFluctuationList holdings={holdings} onSell={openSellModal} />
         </div>
       </main>
 

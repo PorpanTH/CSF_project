@@ -5,18 +5,18 @@ import { Portfolio, PortfolioItem } from '../types'
 import { PerformanceChart, Toast } from '../components'
 import { HoldingsFluctuationList } from '../components/HoldingsFluctuationList'
 import { PnLOverview } from '../components/PnLOverview'
-import { PieBreakdownChart } from '../components/PieBreakdownChart'
+// import { PieBreakdownChart } from '../components/PieBreakdownChart'
 import { portfolioAPI } from '../services/api'
 import {
-  getAssetClassSlices,
+  // getAssetClassSlices,
   getHistoricalData,
   getHoldingsFluctuations,
   getPnLByAssetClass,
-  getRegionSlices,
+  // getRegionSlices,
   getTotalPnL,
 } from '../services/mockData'
 
-type BreakdownMode = 'allocation' | 'region' | 'country'
+// type BreakdownMode = 'allocation' | 'region' | 'country'
 type ProductCategory = 'stock' | 'bond' | 'etf' | 'other'
 
 interface ProductOption {
@@ -54,7 +54,7 @@ export const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
-  const [selectedBreakdown, setSelectedBreakdown] = useState<BreakdownMode>('allocation')
+  // const [selectedBreakdown, setSelectedBreakdown] = useState<BreakdownMode>('allocation')
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('stock')
 
   useEffect(() => {
@@ -81,39 +81,39 @@ export const Dashboard = () => {
   const totalInvested = useMemo(() => allItems.reduce((sum, item) => sum + (item.quantity * item.purchasePrice), 0), [allItems])
   const totalGainLoss = totalPortfolioValue - totalInvested
 
-  const allocationRows = useMemo(() => {
-    const summary = [
-      { type: 'stock' as const, value: allItems.filter(i => i.itemType === 'stock').reduce((sum, i) => sum + (i.quantity * i.currentPrice), 0), percentage: 0, count: allItems.filter(i => i.itemType === 'stock').length },
-      { type: 'bond' as const, value: allItems.filter(i => i.itemType === 'bond').reduce((sum, i) => sum + (i.quantity * i.currentPrice), 0), percentage: 0, count: allItems.filter(i => i.itemType === 'bond').length },
-      { type: 'cash' as const, value: allItems.filter(i => i.itemType === 'cash').reduce((sum, i) => sum + (i.quantity * i.currentPrice), 0), percentage: 0, count: allItems.filter(i => i.itemType === 'cash').length },
-      { type: 'etf' as const, value: allItems.filter(i => i.itemType === 'etf').reduce((sum, i) => sum + (i.quantity * i.currentPrice), 0), percentage: 0, count: allItems.filter(i => i.itemType === 'etf').length },
-      { type: 'other' as const, value: allItems.filter(i => i.itemType === 'other').reduce((sum, i) => sum + (i.quantity * i.currentPrice), 0), percentage: 0, count: allItems.filter(i => i.itemType === 'other').length },
-    ]
-    const totalValue = summary.reduce((sum, item) => sum + item.value, 0)
-    return summary.filter(item => item.value > 0).map(item => ({ ...item, percentage: totalValue > 0 ? (item.value / totalValue) * 100 : 0 }))
-  }, [allItems])
+  // const allocationRows = useMemo(() => {
+  //   const summary = [
+  //     { type: 'stock' as const, value: allItems.filter(i => i.itemType === 'stock').reduce((sum, i) => sum + (i.quantity * i.currentPrice), 0), percentage: 0, count: allItems.filter(i => i.itemType === 'stock').length },
+  //     { type: 'bond' as const, value: allItems.filter(i => i.itemType === 'bond').reduce((sum, i) => sum + (i.quantity * i.currentPrice), 0), percentage: 0, count: allItems.filter(i => i.itemType === 'bond').length },
+  //     { type: 'cash' as const, value: allItems.filter(i => i.itemType === 'cash').reduce((sum, i) => sum + (i.quantity * i.currentPrice), 0), percentage: 0, count: allItems.filter(i => i.itemType === 'cash').length },
+  //     { type: 'etf' as const, value: allItems.filter(i => i.itemType === 'etf').reduce((sum, i) => sum + (i.quantity * i.currentPrice), 0), percentage: 0, count: allItems.filter(i => i.itemType === 'etf').length },
+  //     { type: 'other' as const, value: allItems.filter(i => i.itemType === 'other').reduce((sum, i) => sum + (i.quantity * i.currentPrice), 0), percentage: 0, count: allItems.filter(i => i.itemType === 'other').length },
+  //   ]
+  //   const totalValue = summary.reduce((sum, item) => sum + item.value, 0)
+  //   return summary.filter(item => item.value > 0).map(item => ({ ...item, percentage: totalValue > 0 ? (item.value / totalValue) * 100 : 0 }))
+  // }, [allItems])
 
   const breakdownRows = useMemo(() => getPnLByAssetClass(allItems), [allItems])
   const totals = useMemo(() => getTotalPnL(allItems), [allItems])
   const historicalData = useMemo(() => getHistoricalData(30), [])
   const holdings = useMemo(() => getHoldingsFluctuations(allItems), [allItems])
 
-  const breakdownData = useMemo(() => {
-    switch (selectedBreakdown) {
-      case 'region':
-        return getRegionSlices(allItems)
-      case 'country':
-        return getRegionSlices(allItems)
-      default:
-        return getAssetClassSlices(allItems)
-    }
-  }, [allItems, selectedBreakdown])
+  // const breakdownData = useMemo(() => {
+  //   switch (selectedBreakdown) {
+  //     case 'region':
+  //       return getRegionSlices(allItems)
+  //     case 'country':
+  //       return getRegionSlices(allItems)
+  //     default:
+  //       return getAssetClassSlices(allItems)
+  //   }
+  // }, [allItems, selectedBreakdown])
 
-  const breakdownTitle = selectedBreakdown === 'allocation'
-    ? 'Asset class breakdown'
-    : selectedBreakdown === 'region'
-      ? 'Regional allocation'
-      : 'Country exposure'
+  // const breakdownTitle = selectedBreakdown === 'allocation'
+  //   ? 'Asset class breakdown'
+  //   : selectedBreakdown === 'region'
+  //     ? 'Regional allocation'
+  //     : 'Country exposure'
 
   const primaryPortfolio = portfolios[0]
 
@@ -225,7 +225,7 @@ export const Dashboard = () => {
           <div className="rounded-3xl border border-slate-200 bg-white p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-500">Net asset value</p>
+                <p className="text-sm text-slate-500">Net asset value test</p>
                 <p className="text-2xl font-semibold text-gray-900 mt-2">${totalPortfolioValue.toLocaleString('en-US', { minimumFractionDigits: 0 })}</p>
               </div>
               <div className="rounded-2xl bg-blue-50 p-3 text-blue-600"><Wallet size={20} /></div>
@@ -262,7 +262,7 @@ export const Dashboard = () => {
 
         <div className="grid gap-6 xl:grid-cols-[1.15fr,0.85fr] mb-8">
           <PnLOverview breakdown={breakdownRows} totals={totals} />
-          <div className="card border border-slate-200">
+          {/* <div className="card border border-slate-200">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Allocation view</p>
@@ -294,11 +294,13 @@ export const Dashboard = () => {
             <div className="mt-6">
               <PieBreakdownChart title={breakdownTitle} data={breakdownData} />
             </div>
-          </div>
+          </div> */}
+          <p>does it go here</p>
+          <PerformanceChart data={historicalData} />
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[1.15fr,0.85fr] mb-8">
-          <PerformanceChart data={historicalData} />
+          {/* <PerformanceChart data={historicalData} /> */}
           <HoldingsFluctuationList holdings={holdings} onSell={handleSellHolding} />
         </div>
 

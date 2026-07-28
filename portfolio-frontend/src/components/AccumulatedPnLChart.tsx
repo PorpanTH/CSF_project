@@ -41,8 +41,7 @@ export const AccumulatedPnLChart = ({ endValue }: AccumulatedPnLChartProps) => {
 
   return (
     <div className="card mb-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-        <h3 className="text-lg font-bold text-gray-900">Accumulated P/L</h3>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
         <div className="flex gap-1 bg-gray-100 rounded-lg p-1 self-start flex-wrap">
           {RANGE_OPTIONS.map(opt => (
             <button
