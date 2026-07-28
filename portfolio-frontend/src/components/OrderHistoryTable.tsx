@@ -9,6 +9,7 @@ const BADGE: Record<Order['type'], { label: string; color: string }> = {
   buy: { label: 'Buy', color: CATEGORICAL.slot1 },
   sell: { label: 'Sell', color: CATEGORICAL.slot3 },
   withdrawal: { label: 'Withdrawal', color: BRAND[700] },
+  deposit: { label: 'Deposit', color: CATEGORICAL.slot2 },
 }
 
 const STATUS_BADGE: Record<Order['status'], { label: string; color: string }> = {

@@ -17,7 +17,7 @@ export interface PortfolioItem {
 
 export interface Order {
   id: string
-  type: 'buy' | 'sell' | 'withdrawal'
+  type: 'buy' | 'sell' | 'withdrawal' | 'deposit'
   ticker?: string
   quantity?: number
   price?: number

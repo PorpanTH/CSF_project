@@ -19,22 +19,22 @@ const Sparkline = ({ history, color }: { history: number[]; color: string }) => 
 
 export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuationListProps) => {
   return (
-    <div className="card border border-slate-200">
+    <div className="card border border-slate-200 flex flex-col">
       <div className="flex items-start justify-between mb-5">
         <div>
           <h3 className="text-lg font-bold text-gray-900">Portfolio sell desk</h3>
           <p className="text-sm text-gray-500 mt-1">Professional watchlist for monitoring holdings and preparing exits</p>
         </div>
         <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
-          30 sessions
+          {holdings.length} holdings
         </div>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-3 overflow-y-auto flex-1 pr-2" style={{ maxHeight: '500px' }}>
         {holdings.map(holding => {
           const positive = holding.changePercent >= 0
           const color = positive ? STATUS.good : STATUS.critical
           return (
-            <div key={holding.ticker} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div key={holding.ticker} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 flex-shrink-0">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">

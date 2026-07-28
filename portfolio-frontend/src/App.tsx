@@ -8,6 +8,8 @@ import { OrderDialog } from './components/OrderDialog'
 import { OrderHistoryTable } from './components/OrderHistoryTable'
 import { TradeModal } from './components/TradeModal'
 import { WithdrawModal } from './components/WithdrawModal'
+import { DepositModal } from './components/DepositModal'
+import { ProductDetailModal } from './components/ProductDetailModal'
 import { Toast } from './components/Toast'
 import {
   getMockPortfolioById,
@@ -32,6 +34,94 @@ interface ProductOption {
 
 const uid = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
+const MOCK_NEWS: Record<string, { title: string; source: string; summary: string }[]> = {
+  AAPL: [
+    {
+      title: 'Apple Announces New AI Features for iPhone 16',
+      source: 'TechCrunch',
+      summary: 'Apple revealed groundbreaking on-device AI capabilities that will power the next generation of iPhone models, focusing on privacy and performance.',
+    },
+    {
+      title: 'Q3 Earnings Beat Expectations Amid Strong Mac Sales',
+      source: 'Bloomberg',
+      summary: 'Apple reported record quarterly earnings driven by strong demand for MacBook Pro and iPad Pro. Services revenue also showed growth.',
+    },
+    {
+      title: 'Apple Watch Gets Health Monitoring Upgrade',
+      source: 'MacRumors',
+      summary: 'The latest Apple Watch update introduces advanced heart monitoring and sleep tracking features approved by regulatory bodies.',
+    },
+  ],
+  MSFT: [
+    {
+      title: 'Microsoft Expands Azure AI Services',
+      source: 'Seeking Alpha',
+      summary: 'Microsoft announced expanded Azure AI capabilities, integrating OpenAI models more deeply into enterprise offerings.',
+    },
+    {
+      title: 'Strong Cloud Growth Drives Revenue Beat',
+      source: 'MarketWatch',
+      summary: 'Microsoft Cloud revenue jumped 28% YoY, surpassing analyst expectations and driving stock gains.',
+    },
+    {
+      title: 'Windows 12 Preview Released to Developers',
+      source: 'Ars Technica',
+      summary: 'Microsoft released the first preview build of Windows 12 with AI-powered features and performance improvements.',
+    },
+  ],
+  VOO: [
+    {
+      title: 'S&P 500 Reaches New All-Time High',
+      source: 'CNBC',
+      summary: 'The S&P 500 index closed at record levels as tech stocks lead the market rally.',
+    },
+    {
+      title: 'Vanguard Reports Strong Fund Inflows',
+      source: 'Reuters',
+      summary: 'Vanguard saw significant inflows into its S&P 500 tracking funds as investors seek broad market exposure.',
+    },
+    {
+      title: 'Market Analysis: Will Tech Dominance Continue?',
+      source: 'The Wall Street Journal',
+      summary: 'Analysts debate whether technology companies will continue driving market gains in the coming quarters.',
+    },
+  ],
+  AGG: [
+    {
+      title: 'Bond Market Stabilizes as Rate Outlook Shifts',
+      source: 'Financial Times',
+      summary: 'The broader bond market showed resilience as investors reassessed expectations for future interest rate cuts.',
+    },
+    {
+      title: 'iShares Core Bond ETF Attracts Record Assets',
+      source: 'Yahoo Finance',
+      summary: 'The AGG ETF surpassed $300 billion in assets under management, reflecting strong investor demand for fixed-income exposure.',
+    },
+    {
+      title: 'Credit Spreads Narrow on Economic Optimism',
+      source: 'Trading Economics',
+      summary: 'Investment-grade credit spreads tightened as corporate earnings reports beat expectations.',
+    },
+  ],
+  ALT: [
+    {
+      title: 'Alternative Credit Funds Outperform Traditional Bonds',
+      source: 'Institutional Investor',
+      summary: 'Alternative credit strategies delivered strong returns in the first half of 2024, outpacing traditional fixed income.',
+    },
+    {
+      title: 'Private Credit Market Continues to Expand',
+      source: 'Private Equity News',
+      summary: 'The alternative credit market reached new size milestones as institutional investors increase allocations.',
+    },
+    {
+      title: 'Risk Management in Alternative Investing',
+      source: 'Harvard Business Review',
+      summary: 'A comprehensive look at how sophisticated investors manage risk in alternative credit portfolios.',
+    },
+  ],
+}
+
 const PRODUCT_OPTIONS: ProductOption[] = [
   { id: 'aapl', category: 'stock', ticker: 'AAPL', name: 'Apple Inc.', price: 228.45, sector: 'Technology', region: 'North America', description: 'Mega-cap growth leader' },
   { id: 'msft', category: 'stock', ticker: 'MSFT', name: 'Microsoft Corp.', price: 417.89, sector: 'Technology', region: 'North America', description: 'Enterprise cloud and software' },
@@ -55,6 +145,8 @@ export default function App() {
     region?: string
   } | null>(null)
   const [withdrawOpen, setWithdrawOpen] = useState(false)
+  const [depositOpen, setDepositOpen] = useState(false)
+  const [selectedProduct, setSelectedProduct] = useState<{ ticker: string; equity: MarketEquity; product: ProductOption } | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
 
   const cashItem = items.find(i => i.itemType === 'cash')
@@ -218,6 +310,15 @@ export default function App() {
     }
   }
 
+  const handleProductDetails = (equity: MarketEquity) => {
+    const product = PRODUCT_OPTIONS.find(option => option.ticker === equity.ticker)
+    if (product) {
+      setSelectedProduct({ ticker: equity.ticker, equity, product })
+    } else {
+      setToast({ message: `No details available for ${equity.ticker}.`, type: 'error' })
+    }
+  }
+
   const handleWithdrawConfirm = (amount: number) => {
     if (!cashItem) {
       setToast({ message: 'Cash account not available.', type: 'error' })
@@ -235,6 +336,20 @@ export default function App() {
     createOrder({ type: 'withdrawal', total: amount, date: new Date().toISOString() })
     setToast({ message: `Withdrew $${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}.`, type: 'success' })
     setWithdrawOpen(false)
+  }
+
+  const handleDepositConfirm = (amount: number) => {
+    if (!cashItem) {
+      setToast({ message: 'Cash account not available.', type: 'error' })
+      setDepositOpen(false)
+      return
+    }
+
+    const nextItems = items.map(i => i.itemType === 'cash' ? { ...i, quantity: Number((i.quantity + amount).toFixed(2)) } : i)
+    setItems(nextItems)
+    createOrder({ type: 'deposit', total: amount, date: new Date().toISOString() })
+    setToast({ message: `Deposited $${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}.`, type: 'success' })
+    setDepositOpen(false)
   }
 
   const normaliseItemType = (category: ProductCategory): PortfolioItem['itemType'] => {
@@ -347,23 +462,31 @@ export default function App() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 mb-8">
-          <div className="card border border-slate-200">
+          <div className="card border border-slate-200 flex flex-col">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Buy flow</p>
                 <h2 className="text-2xl font-bold text-gray-900 mt-2">Search and buy financial products</h2>
                 <p className="text-gray-600 mt-2">Search across available products and open a trade for the selected instrument.</p>
               </div>
-              <button
-                onClick={() => setWithdrawOpen(true)}
-                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
-              >
-                Withdraw cash
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setDepositOpen(true)}
+                  className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
+                >
+                  Add money
+                </button>
+                <button
+                  onClick={() => setWithdrawOpen(true)}
+                  className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
+                >
+                  Withdraw cash
+                </button>
+              </div>
             </div>
 
-            <div className="mt-6">
-              <MarketExplorer equities={marketCatalog} onBuy={handleExplorerBuy} />
+            <div className="mt-6 overflow-y-auto flex-1" style={{ maxHeight: '600px' }}>
+              <MarketExplorer equities={marketCatalog} onBuy={handleExplorerBuy} onDetails={handleProductDetails} />
             </div>
           </div>
 
@@ -389,6 +512,33 @@ export default function App() {
           balance={cashItem.quantity}
           onConfirm={handleWithdrawConfirm}
           onClose={() => setWithdrawOpen(false)}
+        />
+      )}
+
+      {depositOpen && (
+        <DepositModal
+          onConfirm={handleDepositConfirm}
+          onClose={() => setDepositOpen(false)}
+        />
+      )}
+
+      {selectedProduct && (
+        <ProductDetailModal
+          ticker={selectedProduct.equity.ticker}
+          name={selectedProduct.equity.name}
+          sector={selectedProduct.equity.sector}
+          region={selectedProduct.equity.region}
+          price={selectedProduct.equity.price}
+          changePercent={selectedProduct.equity.changePercent}
+          priceHistory={selectedProduct.equity.priceHistory.length > 0 ? selectedProduct.equity.priceHistory : Array(30).fill(selectedProduct.equity.price)}
+          news={(MOCK_NEWS[selectedProduct.equity.ticker] || []).map((n, i) => ({
+            id: `news-${i}`,
+            title: n.title,
+            source: n.source,
+            date: new Date(Date.now() - i * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            summary: n.summary,
+          }))}
+          onClose={() => setSelectedProduct(null)}
         />
       )}
 
