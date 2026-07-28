@@ -1,21 +1,20 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
-from flask_sqlalchemy import SQLAlchemy
 import os
 from dotenv import load_dotenv
+from database.db import db
 
 load_dotenv()
-
-db = SQLAlchemy()
 
 def create_app():
     app = Flask(__name__)
 
     # Configuration
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
-        'DATABASE_URL',
-        'sqlite:///portfolio.db'
-    )
+    database_url = os.getenv('DATABASE_URL', 'sqlite:///portfolio.db')
+    if database_url.startswith('mysql://'):
+        database_url = database_url.replace('mysql://', 'mysql+pymysql://', 1)
+
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # Initialize extensions
