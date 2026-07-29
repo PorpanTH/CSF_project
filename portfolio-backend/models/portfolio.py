@@ -84,6 +84,9 @@ class PortfolioItem(db.Model):
     purchase_date = db.Column(db.String(10), nullable=False)
     current_price = db.Column(db.Float, nullable=False)
     realized_pnl = db.Column(db.Float, default=0)
+    sector = db.Column(db.String(100), default='')
+    region = db.Column(db.String(100), default='')
+    price_history = db.Column(db.JSON, default=list)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -122,6 +125,9 @@ class PortfolioItem(db.Model):
             'realizedPnLPercent': pnl['realizedPnLPercent'],
             'unrealizedPnL': pnl['unrealizedPnL'],
             'unrealizedPnLPercent': pnl['unrealizedPnLPercent'],
+            'sector': self.sector or '',
+            'region': self.region or '',
+            'priceHistory': self.price_history or [],
             'createdAt': self.created_at.isoformat(),
             'updatedAt': self.updated_at.isoformat()
         }

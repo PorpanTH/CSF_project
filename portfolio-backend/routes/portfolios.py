@@ -88,7 +88,10 @@ def add_portfolio_item(portfolio_id):
         purchase_price=data['purchasePrice'],
         purchase_date=data['purchaseDate'],
         current_price=data['currentPrice'],
-        realized_pnl=data.get('realizedPnL', 0)
+        realized_pnl=data.get('realizedPnL', 0),
+        sector=data.get('sector', ''),
+        region=data.get('region', ''),
+        price_history=data.get('priceHistory', [])
     )
 
     try:
@@ -126,6 +129,12 @@ def update_portfolio_item(portfolio_id, item_id):
         item.current_price = data['currentPrice']
     if 'realizedPnL' in data:
         item.realized_pnl = data['realizedPnL']
+    if 'sector' in data:
+        item.sector = data['sector']
+    if 'region' in data:
+        item.region = data['region']
+    if 'priceHistory' in data:
+        item.price_history = data['priceHistory']
 
     try:
         db.session.commit()
