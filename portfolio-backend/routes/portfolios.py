@@ -1,5 +1,5 @@
-from flask import Blueprint, request, jsonify
-from app import db
+from flask import Blueprint, request, jsonify, current_app
+from database.db import db
 from models.portfolio import Portfolio, PortfolioItem
 from routes.auth import get_default_user
 
@@ -7,14 +7,21 @@ portfolio_bp = Blueprint('portfolios', __name__)
 
 USER_ID = 1
 
+
+def _log_action(action, **details):
+    current_app.logger.info('%s %s', action, details)
+
 @portfolio_bp.route('/portfolios', methods=['GET'])
 def get_portfolios():
+    _log_action('list portfolios', user_id=USER_ID)
     portfolios = Portfolio.query.filter_by(user_id=USER_ID).all()
+    current_app.logger.debug('found %s portfolios', len(portfolios))
     return jsonify([p.to_dict() for p in portfolios]), 200
 
 @portfolio_bp.route('/portfolios', methods=['POST'])
 def create_portfolio():
     data = request.get_json()
+    _log_action('create portfolio request', payload=data)
     if not data or not data.get('name'):
         return jsonify({'error': 'Portfolio name is required'}), 400
 
@@ -23,13 +30,16 @@ def create_portfolio():
     try:
         db.session.add(portfolio)
         db.session.commit()
+        _log_action('created portfolio', portfolio_id=portfolio.id, name=portfolio.name)
         return jsonify(portfolio.to_dict()), 201
     except Exception as e:
+        current_app.logger.exception('failed to create portfolio')
         db.session.rollback()
         return jsonify({'error': 'Failed to create portfolio'}), 500
 
 @portfolio_bp.route('/portfolios/<int:portfolio_id>', methods=['GET'])
 def get_portfolio(portfolio_id):
+    _log_action('get portfolio', portfolio_id=portfolio_id)
     portfolio = Portfolio.query.filter_by(id=portfolio_id, user_id=USER_ID).first()
     if not portfolio:
         return jsonify({'error': 'Portfolio not found'}), 404
@@ -37,6 +47,7 @@ def get_portfolio(portfolio_id):
 
 @portfolio_bp.route('/portfolios/<int:portfolio_id>', methods=['PUT'])
 def update_portfolio(portfolio_id):
+    _log_action('update portfolio request', portfolio_id=portfolio_id)
     portfolio = Portfolio.query.filter_by(id=portfolio_id, user_id=USER_ID).first()
     if not portfolio:
         return jsonify({'error': 'Portfolio not found'}), 404
@@ -49,13 +60,16 @@ def update_portfolio(portfolio_id):
 
     try:
         db.session.commit()
+        _log_action('updated portfolio', portfolio_id=portfolio.id)
         return jsonify(portfolio.to_dict()), 200
     except Exception as e:
+        current_app.logger.exception('failed to update portfolio')
         db.session.rollback()
         return jsonify({'error': 'Failed to update portfolio'}), 500
 
 @portfolio_bp.route('/portfolios/<int:portfolio_id>', methods=['DELETE'])
 def delete_portfolio(portfolio_id):
+    _log_action('delete portfolio request', portfolio_id=portfolio_id)
     portfolio = Portfolio.query.filter_by(id=portfolio_id, user_id=USER_ID).first()
     if not portfolio:
         return jsonify({'error': 'Portfolio not found'}), 404
@@ -63,13 +77,16 @@ def delete_portfolio(portfolio_id):
     try:
         db.session.delete(portfolio)
         db.session.commit()
+        _log_action('deleted portfolio', portfolio_id=portfolio_id)
         return jsonify({'message': 'Portfolio deleted successfully'}), 200
     except Exception as e:
+        current_app.logger.exception('failed to delete portfolio')
         db.session.rollback()
         return jsonify({'error': 'Failed to delete portfolio'}), 500
 
 @portfolio_bp.route('/portfolios/<int:portfolio_id>/items', methods=['POST'])
 def add_portfolio_item(portfolio_id):
+    _log_action('add portfolio item request', portfolio_id=portfolio_id)
     portfolio = Portfolio.query.filter_by(id=portfolio_id, user_id=USER_ID).first()
     if not portfolio:
         return jsonify({'error': 'Portfolio not found'}), 404
@@ -97,13 +114,16 @@ def add_portfolio_item(portfolio_id):
     try:
         db.session.add(item)
         db.session.commit()
+        _log_action('added portfolio item', portfolio_id=portfolio_id, item_id=item.id, ticker=item.ticker)
         return jsonify(item.to_dict()), 201
     except Exception as e:
+        current_app.logger.exception('failed to add portfolio item')
         db.session.rollback()
         return jsonify({'error': 'Failed to add item'}), 500
 
 @portfolio_bp.route('/portfolios/<int:portfolio_id>/items/<int:item_id>', methods=['PUT'])
 def update_portfolio_item(portfolio_id, item_id):
+    _log_action('update portfolio item request', portfolio_id=portfolio_id, item_id=item_id)
     portfolio = Portfolio.query.filter_by(id=portfolio_id, user_id=USER_ID).first()
     if not portfolio:
         return jsonify({'error': 'Portfolio not found'}), 404
@@ -138,13 +158,16 @@ def update_portfolio_item(portfolio_id, item_id):
 
     try:
         db.session.commit()
+        _log_action('updated portfolio item', portfolio_id=portfolio_id, item_id=item_id)
         return jsonify(item.to_dict()), 200
     except Exception as e:
+        current_app.logger.exception('failed to update portfolio item')
         db.session.rollback()
         return jsonify({'error': 'Failed to update item'}), 500
 
 @portfolio_bp.route('/portfolios/<int:portfolio_id>/items/<int:item_id>', methods=['DELETE'])
 def delete_portfolio_item(portfolio_id, item_id):
+    _log_action('delete portfolio item request', portfolio_id=portfolio_id, item_id=item_id)
     portfolio = Portfolio.query.filter_by(id=portfolio_id, user_id=USER_ID).first()
     if not portfolio:
         return jsonify({'error': 'Portfolio not found'}), 404
@@ -156,7 +179,9 @@ def delete_portfolio_item(portfolio_id, item_id):
     try:
         db.session.delete(item)
         db.session.commit()
+        _log_action('deleted portfolio item', portfolio_id=portfolio_id, item_id=item_id)
         return jsonify({'message': 'Item deleted successfully'}), 200
     except Exception as e:
+        current_app.logger.exception('failed to delete portfolio item')
         db.session.rollback()
         return jsonify({'error': 'Failed to delete item'}), 500

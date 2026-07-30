@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ArrowUpRight, PieChart, Wallet } from 'lucide-react'
 import { PnLOverview } from './components/PnLOverview'
 import { AccumulatedPnLChart } from './components/AccumulatedPnLChart'
@@ -11,8 +11,8 @@ import { WithdrawModal } from './components/WithdrawModal'
 import { DepositModal } from './components/DepositModal'
 import { ProductDetailModal } from './components/ProductDetailModal'
 import { Toast } from './components/Toast'
+import { portfolioAPI } from './services/api'
 import {
-  getMockPortfolioById,
   getPnLByAssetClass,
   getTotalPnL,
   getHoldingsFluctuations,
@@ -131,8 +131,10 @@ const PRODUCT_OPTIONS: ProductOption[] = [
 ]
 
 export default function App() {
-  const [items, setItems] = useState<PortfolioItem[]>(() => getMockPortfolioById('1')!.items)
+  const [portfolioId, setPortfolioId] = useState<string | null>(null)
+  const [items, setItems] = useState<PortfolioItem[]>([])
   const [orders, setOrders] = useState<Order[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [activeTrade, setActiveTrade] = useState<{
     mode: 'buy' | 'sell'
     ticker: string
@@ -148,6 +150,85 @@ export default function App() {
   const [depositOpen, setDepositOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<{ ticker: string; equity: MarketEquity; product: ProductOption } | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
+
+  useEffect(() => {
+    void loadPortfolio()
+  }, [])
+
+  const loadPortfolio = async () => {
+    try {
+      setIsLoading(true)
+      const portfolios = await portfolioAPI.getAll()
+      const portfolio = portfolios.find(item => item.id === '1') ?? portfolios[0]
+
+      if (!portfolio) {
+        throw new Error('No portfolios available')
+      }
+
+      setPortfolioId(portfolio.id)
+      setItems(portfolio.items)
+    } catch (error) {
+      setToast({ message: 'Failed to load portfolio from the backend.', type: 'error' })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const persistItems = async (previousItems: PortfolioItem[], nextItems: PortfolioItem[]) => {
+    if (!portfolioId) {
+      throw new Error('Portfolio is not loaded yet')
+    }
+
+    const previousById = new Map(previousItems.map(item => [item.id, item]))
+    const nextById = new Map(nextItems.map(item => [item.id, item]))
+
+    for (const previousItem of previousItems) {
+      if (!nextById.has(previousItem.id)) {
+        await portfolioAPI.deleteItem(portfolioId, previousItem.id)
+      }
+    }
+
+    const savedItems: PortfolioItem[] = []
+
+    for (const item of nextItems) {
+      const previousItem = previousById.get(item.id)
+      const payload = {
+        itemType: item.itemType,
+        ticker: item.ticker,
+        quantity: item.quantity,
+        purchasePrice: item.purchasePrice,
+        purchaseDate: item.purchaseDate,
+        currentPrice: item.currentPrice,
+        realizedPnL: item.realizedPnL,
+        sector: item.sector,
+        region: item.region,
+        priceHistory: item.priceHistory,
+      }
+
+      if (!previousItem) {
+        const createdItem = await portfolioAPI.addItem(portfolioId, payload)
+        savedItems.push(createdItem)
+        continue
+      }
+
+      if (JSON.stringify(previousItem) !== JSON.stringify(item)) {
+        const updatedItem = await portfolioAPI.updateItem(portfolioId, item.id, payload)
+        savedItems.push(updatedItem)
+        continue
+      }
+
+      savedItems.push(item)
+    }
+
+    return savedItems
+  }
+
+  const commitItems = async (nextItems: PortfolioItem[]) => {
+    const previousItems = items
+    const savedItems = await persistItems(previousItems, nextItems)
+    setItems(savedItems)
+    return savedItems
+  }
 
   const cashItem = items.find(i => i.itemType === 'cash')
   const cashBalance = useMemo(
@@ -184,7 +265,7 @@ export default function App() {
     createOrder(order)
   }
 
-  const handleConfirmTrade = (quantity: number) => {
+  const handleConfirmTrade = async (quantity: number) => {
     if (!activeTrade) return
 
     const { mode, ticker, price, maxQuantity } = activeTrade
@@ -230,9 +311,15 @@ export default function App() {
         ]
       }
 
-      setItems(nextItems)
-      completeOrder({ type: 'buy', ticker, quantity, price, total: totalCost, date: timestamp })
-      setToast({ message: `Placed buy order for ${quantity} ${ticker}.`, type: 'success' })
+      try {
+        await commitItems(nextItems)
+        completeOrder({ type: 'buy', ticker, quantity, price, total: totalCost, date: timestamp })
+        setToast({ message: `Placed buy order for ${quantity} ${ticker}.`, type: 'success' })
+      } catch (error) {
+        setToast({ message: 'Failed to persist buy order to the backend.', type: 'error' })
+        setActiveTrade(null)
+        return
+      }
     }
 
     if (mode === 'sell') {
@@ -264,9 +351,15 @@ export default function App() {
         }]
       }).map(i => i.itemType === 'cash' ? { ...i, quantity: Number((i.quantity + proceeds).toFixed(2)) } : i)
 
-      setItems(nextItems)
-      completeOrder({ type: 'sell', ticker, quantity, price, total: proceeds, date: timestamp })
-      setToast({ message: `Placed sell order for ${quantity} ${ticker}.`, type: 'success' })
+      try {
+        await commitItems(nextItems)
+        completeOrder({ type: 'sell', ticker, quantity, price, total: proceeds, date: timestamp })
+        setToast({ message: `Placed sell order for ${quantity} ${ticker}.`, type: 'success' })
+      } catch (error) {
+        setToast({ message: 'Failed to persist sell order to the backend.', type: 'error' })
+        setActiveTrade(null)
+        return
+      }
     }
 
     setActiveTrade(null)
@@ -319,7 +412,7 @@ export default function App() {
     }
   }
 
-  const handleWithdrawConfirm = (amount: number) => {
+  const handleWithdrawConfirm = async (amount: number) => {
     if (!cashItem) {
       setToast({ message: 'Cash account not available.', type: 'error' })
       setWithdrawOpen(false)
@@ -330,26 +423,32 @@ export default function App() {
       setWithdrawOpen(false)
       return
     }
-
     const nextItems = items.map(i => i.itemType === 'cash' ? { ...i, quantity: Number((i.quantity - amount).toFixed(2)) } : i)
-    setItems(nextItems)
-    createOrder({ type: 'withdrawal', total: amount, date: new Date().toISOString() })
-    setToast({ message: `Withdrew $${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}.`, type: 'success' })
-    setWithdrawOpen(false)
+    try {
+      await commitItems(nextItems)
+      createOrder({ type: 'withdrawal', total: amount, date: new Date().toISOString() })
+      setToast({ message: `Withdrew $${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}.`, type: 'success' })
+      setWithdrawOpen(false)
+    } catch (error) {
+      setToast({ message: 'Failed to persist withdrawal to the backend.', type: 'error' })
+    }
   }
 
-  const handleDepositConfirm = (amount: number) => {
+  const handleDepositConfirm = async (amount: number) => {
     if (!cashItem) {
       setToast({ message: 'Cash account not available.', type: 'error' })
       setDepositOpen(false)
       return
     }
-
     const nextItems = items.map(i => i.itemType === 'cash' ? { ...i, quantity: Number((i.quantity + amount).toFixed(2)) } : i)
-    setItems(nextItems)
-    createOrder({ type: 'deposit', total: amount, date: new Date().toISOString() })
-    setToast({ message: `Deposited $${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}.`, type: 'success' })
-    setDepositOpen(false)
+    try {
+      await commitItems(nextItems)
+      createOrder({ type: 'deposit', total: amount, date: new Date().toISOString() })
+      setToast({ message: `Deposited $${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}.`, type: 'success' })
+      setDepositOpen(false)
+    } catch (error) {
+      setToast({ message: 'Failed to persist deposit to the backend.', type: 'error' })
+    }
   }
 
   const normaliseItemType = (category: ProductCategory): PortfolioItem['itemType'] => {
@@ -363,6 +462,14 @@ export default function App() {
       default:
         return 'stock'
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 text-slate-700">
+        Loading portfolio from backend…
+      </div>
+    )
   }
 
   return (
