@@ -84,6 +84,7 @@ class PortfolioItem(db.Model):
     quantity = db.Column(db.Float, nullable=False)
     purchase_price = db.Column(db.Float, nullable=False)
     purchase_date = db.Column(db.String(10), nullable=False)
+    name = db.Column(db.String(120), default='')
     sector = db.Column(db.String(100), default='')
     region = db.Column(db.String(100), default='')
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
@@ -114,40 +115,16 @@ class PortfolioItem(db.Model):
     def __repr__(self):
         return f'<PortfolioItem {self.ticker}>'
 
-    def calculate_pnl(self):
-        cost = self.quantity * self.purchase_price if self.quantity is not None and self.purchase_price is not None else 0
-        current = cost
-        unrealized = 0
-        realized = 0
-        return {
-            'cost': cost,
-            'current': current,
-            'unrealizedPnL': unrealized,
-            'unrealizedPnLPercent': 0,
-            'realizedPnL': realized,
-            'realizedPnLPercent': 0
-        }
-
     def to_dict(self):
-        pnl = self.calculate_pnl()
         return {
             'id': str(self.id) if self.id is not None else None,
             'portfolioId': str(self.portfolio_id) if self.portfolio_id is not None else None,
             'assetClass': self.asset_class,
-            'itemType': self.item_type,
             'ticker': self.ticker,
             'quantity': self.quantity,
             'purchasePrice': self.purchase_price,
             'purchaseDate': self.purchase_date,
-            'currentPrice': self.purchase_price,
-            'cost': pnl['cost'],
-            'currentValue': pnl['current'],
-            'realizedPnL': pnl['realizedPnL'],
-            'realizedPnLPercent': pnl['realizedPnLPercent'],
-            'unrealizedPnL': pnl['unrealizedPnL'],
-            'unrealizedPnLPercent': pnl['unrealizedPnLPercent'],
+            'name': self.name or '',
             'sector': self.sector or '',
-            'region': self.region or '',
-            'createdAt': self.created_at.isoformat() if getattr(self, 'created_at', None) else None,
-            'updatedAt': self.updated_at.isoformat() if getattr(self, 'updated_at', None) else None
+            'region': self.region or ''
         }
