@@ -6,15 +6,15 @@ export const Header = () => {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
-    <header className="bg-gradient-to-r from-slate-900 to-slate-800 text-white shadow-lg">
+    <header className="bg-gradient-to-r from-red-900 to-red-700 text-white shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <div className="bg-blue-600 p-2 rounded-lg">
+            <div className="bg-white-600 p-2 rounded-lg">
               <BarChart3 size={24} />
             </div>
             <div>
-              <h1 className="text-xl font-bold">Portfolio Manager</h1>
+              <h1 className="text-xl font-bold">King Kong Portfolio Manager</h1>
               <p className="text-xs text-gray-300">Financial Portfolio Management</p>
             </div>
           </Link>
@@ -39,8 +39,8 @@ export const Header = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/add-portfolio" className="block py-2 md:py-0 px-4 py-2 md:py-0 bg-blue-600 md:bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
-                  + New Portfolio
+                <Link to="/add-portfolio" className="block py-2 md:py-0 px-4 py-2 md:py-0 bg-white-600 md:bg-white-600 rounded-lg hover:bg-black-700 transition-colors">
+                  New Portfolio
                 </Link>
               </li>
             </ul>

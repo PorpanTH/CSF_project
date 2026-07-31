@@ -14,6 +14,7 @@ import {
   getHoldingsFluctuations,
 } from './services/mockData'
 import { PortfolioItem, Order, MarketEquity } from './types'
+import { Header } from './components/Header.tsx'
 
 type ProductCategory = 'stock' | 'bond' | 'etf' | 'other'
 
@@ -470,22 +471,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header — red + white brand chrome */}
-      <header className="bg-gradient-to-r from-red-900 to-red-700 text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-3">
-              <div className="bg-white/15 p-2 rounded-lg">
-                <span className="text-2xl">📊</span>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold">Portfolio Manager</h1>
-                <p className="text-xs text-red-100">Financial Portfolio Management</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -567,20 +553,6 @@ export default function App() {
                 <h2 className="text-2xl font-bold text-gray-900 mt-2">Search and buy financial products</h2>
                 <p className="text-gray-600 mt-2">Search across available products and open a trade for the selected instrument.</p>
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setDepositOpen(true)}
-                  className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
-                >
-                  Add money
-                </button>
-                <button
-                  onClick={() => setWithdrawOpen(true)}
-                  className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
-                >
-                  Withdraw cash
-                </button>
-              </div>
             </div>
 
             <div className="mt-6 overflow-y-auto flex-1" style={{ maxHeight: '600px' }}>
@@ -602,21 +574,6 @@ export default function App() {
           availableBalance={activeTrade.availableBalance}
           onConfirm={handleConfirmTrade}
           onClose={() => setActiveTrade(null)}
-        />
-      )}
-
-      {withdrawOpen && cashItem && (
-        <WithdrawModal
-          balance={cashItem.quantity}
-          onConfirm={handleWithdrawConfirm}
-          onClose={() => setWithdrawOpen(false)}
-        />
-      )}
-
-      {depositOpen && (
-        <DepositModal
-          onConfirm={handleDepositConfirm}
-          onClose={() => setDepositOpen(false)}
         />
       )}
 
