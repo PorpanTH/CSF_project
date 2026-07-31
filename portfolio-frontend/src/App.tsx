@@ -4,11 +4,7 @@ import { PnLOverview } from './components/PnLOverview'
 import { AccumulatedPnLChart } from './components/AccumulatedPnLChart'
 import { HoldingsFluctuationList } from './components/HoldingsFluctuationList'
 import { MarketExplorer } from './components/MarketExplorer'
-import { OrderDialog } from './components/OrderDialog'
-import { OrderHistoryTable } from './components/OrderHistoryTable'
 import { TradeModal } from './components/TradeModal'
-import { WithdrawModal } from './components/WithdrawModal'
-import { DepositModal } from './components/DepositModal'
 import { ProductDetailModal } from './components/ProductDetailModal'
 import { Toast } from './components/Toast'
 import { portfolioAPI } from './services/api'
@@ -562,11 +558,6 @@ export default function App() {
           </div>
         </div>
       </div>
-
-        <div className="grid gap-6 md:grid-cols-2 mb-8">
-          <OrderDialog orders={orders} />
-          <OrderHistoryTable orders={orders} />
-        </div>
 
         <div className="grid gap-6 md:grid-cols-2 mb-8">
           <div className="card border border-slate-200 flex flex-col">
