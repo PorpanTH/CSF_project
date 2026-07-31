@@ -6,7 +6,7 @@ from flask_cors import CORS
 import os
 from dotenv import load_dotenv
 from sqlalchemy import event
-from database.db import db
+from repository import test_connection
 
 load_dotenv()
 
@@ -22,12 +22,7 @@ def create_app():
     app.logger.propagate = False
 
     # Configuration
-    database_url = os.getenv('DATABASE_URL', 'sqlite:///portfolio.db')
-    if database_url.startswith('mysql://'):
-        database_url = database_url.replace('mysql://', 'mysql+pymysql://', 1)
-
-    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    db = test_connection.get_database_connection()
 
     # Initialize extensions
     db.init_app(app)
