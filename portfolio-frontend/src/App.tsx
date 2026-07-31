@@ -4,11 +4,7 @@ import { PnLOverview } from './components/PnLOverview'
 import { AccumulatedPnLChart } from './components/AccumulatedPnLChart'
 import { HoldingsFluctuationList } from './components/HoldingsFluctuationList'
 import { MarketExplorer } from './components/MarketExplorer'
-import { OrderDialog } from './components/OrderDialog'
-import { OrderHistoryTable } from './components/OrderHistoryTable'
 import { TradeModal } from './components/TradeModal'
-import { WithdrawModal } from './components/WithdrawModal'
-import { DepositModal } from './components/DepositModal'
 import { ProductDetailModal } from './components/ProductDetailModal'
 import { Toast } from './components/Toast'
 import { portfolioAPI } from './services/api'
@@ -18,6 +14,7 @@ import {
   getHoldingsFluctuations,
 } from './services/mockData'
 import { PortfolioItem, Order, MarketEquity } from './types'
+import { Header } from './components/Header.tsx'
 
 type ProductCategory = 'stock' | 'bond' | 'etf' | 'other'
 
@@ -146,8 +143,6 @@ export default function App() {
     sector?: string
     region?: string
   } | null>(null)
-  const [withdrawOpen, setWithdrawOpen] = useState(false)
-  const [depositOpen, setDepositOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<{ ticker: string; equity: MarketEquity; product: ProductOption } | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
 
@@ -229,12 +224,6 @@ export default function App() {
     setItems(savedItems)
     return savedItems
   }
-
-  const cashItem = items.find(i => i.itemType === 'cash')
-  const cashBalance = useMemo(
-    () => items.filter(i => i.itemType === 'cash').reduce((s, i) => s + i.quantity * i.currentPrice, 0),
-    [items]
-  )
   const totalPortfolioValue = useMemo(
     () => items.reduce((sum, item) => sum + item.quantity * item.currentPrice, 0),
     [items]
@@ -273,11 +262,6 @@ export default function App() {
 
     if (mode === 'buy') {
       const totalCost = quantity * price
-      if (totalCost > cashBalance) {
-        setToast({ message: 'Insufficient cash balance for this trade.', type: 'error' })
-        setActiveTrade(null)
-        return
-      }
 
       const itemType = activeTrade.itemType ?? 'stock'
       const existing = items.find(i => i.ticker === ticker && i.itemType === itemType)
@@ -372,7 +356,6 @@ export default function App() {
       itemType: normaliseItemType(product.category),
       name: product.name,
       price: product.price,
-      availableBalance: cashBalance,
       sector: product.sector,
       region: product.region,
     })
@@ -412,45 +395,6 @@ export default function App() {
     }
   }
 
-  const handleWithdrawConfirm = async (amount: number) => {
-    if (!cashItem) {
-      setToast({ message: 'Cash account not available.', type: 'error' })
-      setWithdrawOpen(false)
-      return
-    }
-    if (amount > cashItem.quantity) {
-      setToast({ message: 'Withdrawal exceeds available cash.', type: 'error' })
-      setWithdrawOpen(false)
-      return
-    }
-    const nextItems = items.map(i => i.itemType === 'cash' ? { ...i, quantity: Number((i.quantity - amount).toFixed(2)) } : i)
-    try {
-      await commitItems(nextItems)
-      createOrder({ type: 'withdrawal', total: amount, date: new Date().toISOString() })
-      setToast({ message: `Withdrew $${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}.`, type: 'success' })
-      setWithdrawOpen(false)
-    } catch (error) {
-      setToast({ message: 'Failed to persist withdrawal to the backend.', type: 'error' })
-    }
-  }
-
-  const handleDepositConfirm = async (amount: number) => {
-    if (!cashItem) {
-      setToast({ message: 'Cash account not available.', type: 'error' })
-      setDepositOpen(false)
-      return
-    }
-    const nextItems = items.map(i => i.itemType === 'cash' ? { ...i, quantity: Number((i.quantity + amount).toFixed(2)) } : i)
-    try {
-      await commitItems(nextItems)
-      createOrder({ type: 'deposit', total: amount, date: new Date().toISOString() })
-      setToast({ message: `Deposited $${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}.`, type: 'success' })
-      setDepositOpen(false)
-    } catch (error) {
-      setToast({ message: 'Failed to persist deposit to the backend.', type: 'error' })
-    }
-  }
-
   const normaliseItemType = (category: ProductCategory): PortfolioItem['itemType'] => {
     switch (category) {
       case 'bond':
@@ -474,33 +418,17 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header — red + white brand chrome */}
-      <header className="bg-gradient-to-r from-red-900 to-red-700 text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-3">
-              <div className="bg-white/15 p-2 rounded-lg">
-                <span className="text-2xl">📊</span>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold">Portfolio Manager</h1>
-                <p className="text-xs text-red-100">Financial Portfolio Management</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 mt-2">King Kong Investment Portfolio</h1>
-            <p className="text-gray-600 mt-2">P/L, allocation, holdings, and execution-ready product ideas for your current portfolio.</p>
+            <h1 className="text-4xl font-bold text-gray-900 mt-2">Investment Portfolio</h1>
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-8">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 mb-8">
           <div className="rounded-3xl border border-slate-200 bg-white p-5">
             <div className="flex items-center justify-between">
               <div>
@@ -508,15 +436,6 @@ export default function App() {
                 <p className="text-2xl font-semibold text-gray-900 mt-2">${totalPortfolioValue.toLocaleString('en-US', { minimumFractionDigits: 0 })}</p>
               </div>
               <div className="rounded-2xl bg-blue-50 p-3 text-blue-600"><Wallet size={20} /></div>
-            </div>
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-white p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Cash balance</p>
-                <p className="text-2xl font-semibold text-gray-900 mt-2">${cashBalance.toLocaleString('en-US', { minimumFractionDigits: 0 })}</p>
-              </div>
-              <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-600"><ArrowUpRight size={20} /></div>
             </div>
           </div>
           <div className="rounded-3xl border border-slate-200 bg-white p-5">
@@ -564,31 +483,12 @@ export default function App() {
       </div>
 
         <div className="grid gap-6 md:grid-cols-2 mb-8">
-          <OrderDialog orders={orders} />
-          <OrderHistoryTable orders={orders} />
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2 mb-8">
           <div className="card border border-slate-200 flex flex-col">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Buy flow</p>
                 <h2 className="text-2xl font-bold text-gray-900 mt-2">Search and buy financial products</h2>
                 <p className="text-gray-600 mt-2">Search across available products and open a trade for the selected instrument.</p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setDepositOpen(true)}
-                  className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
-                >
-                  Add money
-                </button>
-                <button
-                  onClick={() => setWithdrawOpen(true)}
-                  className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
-                >
-                  Withdraw cash
-                </button>
               </div>
             </div>
 
@@ -611,21 +511,6 @@ export default function App() {
           availableBalance={activeTrade.availableBalance}
           onConfirm={handleConfirmTrade}
           onClose={() => setActiveTrade(null)}
-        />
-      )}
-
-      {withdrawOpen && cashItem && (
-        <WithdrawModal
-          balance={cashItem.quantity}
-          onConfirm={handleWithdrawConfirm}
-          onClose={() => setWithdrawOpen(false)}
-        />
-      )}
-
-      {depositOpen && (
-        <DepositModal
-          onConfirm={handleDepositConfirm}
-          onClose={() => setDepositOpen(false)}
         />
       )}
 

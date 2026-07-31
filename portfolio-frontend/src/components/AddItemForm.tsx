@@ -95,6 +95,7 @@ export const AddItemForm = ({ onSubmit, onCancel, initialData }: AddItemFormProp
             >
               <option value="stock">Stock</option>
               <option value="bond">Bond</option>
+              <option value="etf">ETF</option>
               <option value="cash">Cash</option>
             </select>
           </div>
