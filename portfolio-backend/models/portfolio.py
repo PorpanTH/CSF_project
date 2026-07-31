@@ -1,6 +1,7 @@
 from database.db import db
 from datetime import datetime
 
+
 class Portfolio(db.Model):
     __tablename__ = 'portfolios'
 
@@ -25,14 +26,14 @@ class Portfolio(db.Model):
 
         for item in self.items:
             cost = item.quantity * item.purchase_price
-            current = item.quantity * item.current_price
-            unrealized = current - cost
+            current = cost
+            unrealized = 0
+            realized = 0
 
             total_cost += cost
             total_current += current
-            total_realized_pnl += item.realized_pnl or 0
+            total_realized_pnl += realized
 
-            # Track by asset class
             asset_class = item.asset_class
             if asset_class not in asset_breakdown:
                 asset_breakdown[asset_class] = {
@@ -44,7 +45,7 @@ class Portfolio(db.Model):
             asset_breakdown[asset_class]['value'] += current
             asset_breakdown[asset_class]['cost'] += cost
             asset_breakdown[asset_class]['unrealizedPnL'] += unrealized
-            asset_breakdown[asset_class]['realizedPnL'] += item.realized_pnl or 0
+            asset_breakdown[asset_class]['realizedPnL'] += realized
 
         total_unrealized_pnl = total_current - total_cost
 
@@ -71,6 +72,7 @@ class Portfolio(db.Model):
             'metrics': metrics
         }
 
+
 class PortfolioItem(db.Model):
     __tablename__ = 'portfolio_items'
 
@@ -82,43 +84,62 @@ class PortfolioItem(db.Model):
     quantity = db.Column(db.Float, nullable=False)
     purchase_price = db.Column(db.Float, nullable=False)
     purchase_date = db.Column(db.String(10), nullable=False)
-    current_price = db.Column(db.Float, nullable=False)
-    realized_pnl = db.Column(db.Float, default=0)
     sector = db.Column(db.String(100), default='')
     region = db.Column(db.String(100), default='')
-    price_history = db.Column(db.JSON, default=list)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+
+        positional_fields = [
+            'id', 'portfolio_id', 'asset_class', 'item_type', 'ticker', 'quantity',
+            'purchase_price', 'purchase_date', 'sector', 'region', 'created_at', 'updated_at'
+        ]
+
+        if args:
+            if len(args) > len(positional_fields):
+                raise TypeError('Too many positional arguments for PortfolioItem')
+            for field, value in zip(positional_fields, args):
+                if value is None:
+                    continue
+                setattr(self, field, value)
+
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    def __str__(self):
+        return f'Portfolio details id :{self.id} ticker : {self.ticker}'
 
     def __repr__(self):
         return f'<PortfolioItem {self.ticker}>'
 
     def calculate_pnl(self):
-        cost = self.quantity * self.purchase_price
-        current = self.quantity * self.current_price
-        unrealized = current - cost
-        realized = self.realized_pnl or 0
+        cost = self.quantity * self.purchase_price if self.quantity is not None and self.purchase_price is not None else 0
+        current = cost
+        unrealized = 0
+        realized = 0
         return {
             'cost': cost,
             'current': current,
             'unrealizedPnL': unrealized,
-            'unrealizedPnLPercent': (unrealized / cost * 100) if cost > 0 else 0,
+            'unrealizedPnLPercent': 0,
             'realizedPnL': realized,
-            'realizedPnLPercent': (realized / cost * 100) if cost > 0 else 0
+            'realizedPnLPercent': 0
         }
 
     def to_dict(self):
         pnl = self.calculate_pnl()
         return {
-            'id': str(self.id),
-            'portfolioId': str(self.portfolio_id),
+            'id': str(self.id) if self.id is not None else None,
+            'portfolioId': str(self.portfolio_id) if self.portfolio_id is not None else None,
             'assetClass': self.asset_class,
             'itemType': self.item_type,
             'ticker': self.ticker,
             'quantity': self.quantity,
             'purchasePrice': self.purchase_price,
             'purchaseDate': self.purchase_date,
-            'currentPrice': self.current_price,
+            'currentPrice': self.purchase_price,
             'cost': pnl['cost'],
             'currentValue': pnl['current'],
             'realizedPnL': pnl['realizedPnL'],
@@ -127,7 +148,6 @@ class PortfolioItem(db.Model):
             'unrealizedPnLPercent': pnl['unrealizedPnLPercent'],
             'sector': self.sector or '',
             'region': self.region or '',
-            'priceHistory': self.price_history or [],
-            'createdAt': self.created_at.isoformat(),
-            'updatedAt': self.updated_at.isoformat()
+            'createdAt': self.created_at.isoformat() if getattr(self, 'created_at', None) else None,
+            'updatedAt': self.updated_at.isoformat() if getattr(self, 'updated_at', None) else None
         }
