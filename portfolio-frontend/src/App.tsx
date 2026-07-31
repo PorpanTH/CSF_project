@@ -224,12 +224,6 @@ export default function App() {
     setItems(savedItems)
     return savedItems
   }
-
-  const cashItem = items.find(i => i.itemType === 'cash')
-  const cashBalance = useMemo(
-    () => items.filter(i => i.itemType === 'cash').reduce((s, i) => s + i.quantity * i.currentPrice, 0),
-    [items]
-  )
   const totalPortfolioValue = useMemo(
     () => items.reduce((sum, item) => sum + item.quantity * item.currentPrice, 0),
     [items]
@@ -268,11 +262,6 @@ export default function App() {
 
     if (mode === 'buy') {
       const totalCost = quantity * price
-      if (totalCost > cashBalance) {
-        setToast({ message: 'Insufficient cash balance for this trade.', type: 'error' })
-        setActiveTrade(null)
-        return
-      }
 
       const itemType = activeTrade.itemType ?? 'stock'
       const existing = items.find(i => i.ticker === ticker && i.itemType === itemType)
@@ -367,7 +356,6 @@ export default function App() {
       itemType: normaliseItemType(product.category),
       name: product.name,
       price: product.price,
-      availableBalance: cashBalance,
       sector: product.sector,
       region: product.region,
     })
@@ -440,7 +428,7 @@ export default function App() {
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-8">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 mb-8">
           <div className="rounded-3xl border border-slate-200 bg-white p-5">
             <div className="flex items-center justify-between">
               <div>
@@ -448,15 +436,6 @@ export default function App() {
                 <p className="text-2xl font-semibold text-gray-900 mt-2">${totalPortfolioValue.toLocaleString('en-US', { minimumFractionDigits: 0 })}</p>
               </div>
               <div className="rounded-2xl bg-blue-50 p-3 text-blue-600"><Wallet size={20} /></div>
-            </div>
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-white p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Cash balance</p>
-                <p className="text-2xl font-semibold text-gray-900 mt-2">${cashBalance.toLocaleString('en-US', { minimumFractionDigits: 0 })}</p>
-              </div>
-              <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-600"><ArrowUpRight size={20} /></div>
             </div>
           </div>
           <div className="rounded-3xl border border-slate-200 bg-white p-5">
