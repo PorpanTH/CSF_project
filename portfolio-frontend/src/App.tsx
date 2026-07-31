@@ -143,8 +143,6 @@ export default function App() {
     sector?: string
     region?: string
   } | null>(null)
-  const [withdrawOpen, setWithdrawOpen] = useState(false)
-  const [depositOpen, setDepositOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<{ ticker: string; equity: MarketEquity; product: ProductOption } | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
 
@@ -409,45 +407,6 @@ export default function App() {
     }
   }
 
-  const handleWithdrawConfirm = async (amount: number) => {
-    if (!cashItem) {
-      setToast({ message: 'Cash account not available.', type: 'error' })
-      setWithdrawOpen(false)
-      return
-    }
-    if (amount > cashItem.quantity) {
-      setToast({ message: 'Withdrawal exceeds available cash.', type: 'error' })
-      setWithdrawOpen(false)
-      return
-    }
-    const nextItems = items.map(i => i.itemType === 'cash' ? { ...i, quantity: Number((i.quantity - amount).toFixed(2)) } : i)
-    try {
-      await commitItems(nextItems)
-      createOrder({ type: 'withdrawal', total: amount, date: new Date().toISOString() })
-      setToast({ message: `Withdrew $${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}.`, type: 'success' })
-      setWithdrawOpen(false)
-    } catch (error) {
-      setToast({ message: 'Failed to persist withdrawal to the backend.', type: 'error' })
-    }
-  }
-
-  const handleDepositConfirm = async (amount: number) => {
-    if (!cashItem) {
-      setToast({ message: 'Cash account not available.', type: 'error' })
-      setDepositOpen(false)
-      return
-    }
-    const nextItems = items.map(i => i.itemType === 'cash' ? { ...i, quantity: Number((i.quantity + amount).toFixed(2)) } : i)
-    try {
-      await commitItems(nextItems)
-      createOrder({ type: 'deposit', total: amount, date: new Date().toISOString() })
-      setToast({ message: `Deposited $${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}.`, type: 'success' })
-      setDepositOpen(false)
-    } catch (error) {
-      setToast({ message: 'Failed to persist deposit to the backend.', type: 'error' })
-    }
-  }
-
   const normaliseItemType = (category: ProductCategory): PortfolioItem['itemType'] => {
     switch (category) {
       case 'bond':
@@ -477,8 +436,7 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 mt-2">King Kong Investment Portfolio</h1>
-            <p className="text-gray-600 mt-2">P/L, allocation, holdings, and execution-ready product ideas for your current portfolio.</p>
+            <h1 className="text-4xl font-bold text-gray-900 mt-2">Investment Portfolio</h1>
           </div>
         </div>
 
