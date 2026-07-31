@@ -17,7 +17,8 @@ class Portfolio(db.Model):
     def __repr__(self):
         return f'<Portfolio {self.name}>'
 
-    def calculate_metrics(self):
+    def calculate_metrics(self, live_prices=None):
+        live_prices = live_prices or {}
         total_cost = 0
         total_current = 0
         total_realized_pnl = 0
@@ -26,7 +27,9 @@ class Portfolio(db.Model):
 
         for item in self.items:
             cost = item.quantity * item.purchase_price
-            current = cost
+            ticker = (item.ticker or '').upper()
+            current_price = live_prices.get(ticker, item.purchase_price)
+            current = item.quantity * current_price
             unrealized = 0
             realized = 0
 
@@ -60,8 +63,8 @@ class Portfolio(db.Model):
             'assetBreakdown': asset_breakdown
         }
 
-    def to_dict(self):
-        metrics = self.calculate_metrics()
+    def to_dict(self, live_prices=None):
+        metrics = self.calculate_metrics(live_prices)
         return {
             'id': str(self.id),
             'name': self.name,

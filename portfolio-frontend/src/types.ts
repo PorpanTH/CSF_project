@@ -33,6 +33,7 @@ export interface Portfolio {
   createdAt: string
   updatedAt: string
   items: PortfolioItem[]
+  metrics?: PortfolioMetrics
 }
 
 export interface PortfolioMetrics {
