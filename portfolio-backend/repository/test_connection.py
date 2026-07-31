@@ -30,13 +30,8 @@ if __name__ == "__main__":
         print("Failed to connect")
 
 # cursor = connection.cursor()
-
 # cursor.execute("select * from portfolios;")
-
 # column_names = [desc[0] for desc in cursor.description]
-
 # rows = cursor.fetchall()
-
 # for row in rows:
-
 #     print(row)
