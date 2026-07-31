@@ -11,22 +11,41 @@ def get_all_portfolio_items():
     return jsonify(portfolio_item_list_of_dict), 200
 
 
-# @portfolio_bp.route('/publishers', methods=['POST'])
-# def create_publisher():
-#     data = request.get_json()
-#     required_fields = ['pub_id', 'pub_name', 'city', 'state', 'country']
-#     missing = [f for f in required_fields if not data or f not in data]
-#     if missing:
-#         return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
-#     publisher = Publisher_service.create_publisher(data)
-#     return jsonify(publisher.to_dict()), 201
+@portfolio_bp.route('/portfolio', methods=['POST'])
+def create_portfolio_item():
+    data = request.get_json(silent=True) or {}
+    required_fields = ['assetClass', 'ticker', 'quantity', 'purchasePrice', 'purchaseDate']
+    missing = [field for field in required_fields if not data.get(field)]
+    if missing:
+        return jsonify({'error': f"Missing required fields: {', '.join(missing)}"}), 400
 
-# @publisher_bp.route('/publishers', methods =["DELETE"])
-# def delete_publisher():
-#     data = request.get_json()
-#     required_fields = ['pub_name']
-#     missing = [f for f in required_fields if not data or f not in data]
-#     if missing:
-#         return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
-#     publisher = Publisher_service.delete_publisher(data)
-#     return jsonify(publisher.to_dict()), 201
+    item = Portfolio_Service.create_portfolio_item({
+        'portfolioId': data.get('portfolioId', 1),
+        'assetClass': data['assetClass'],
+        'itemType': data.get('itemType', 'investment'),
+        'ticker': data['ticker'],
+        'quantity': data['quantity'],
+        'purchasePrice': data['purchasePrice'],
+        'purchaseDate': data['purchaseDate'],
+        'name': data.get('name'),
+        'sector': data.get('sector', ''),
+        'region': data.get('region', '')
+    })
+
+    if item is None:
+        return jsonify({'error': 'Failed to create portfolio item. Check server logs for the database error.'}), 500
+
+    return jsonify(item.to_dict()), 201
+
+
+@portfolio_bp.route('/portfolio/<int:item_id>', methods=['PUT'])
+def update_portfolio_item(item_id):
+    data = request.get_json(silent=True) or {}
+    if not data:
+        return jsonify({'error': 'No update data provided'}), 400
+
+    item = Portfolio_Service.update_portfolio_item(item_id, data)
+    if item is None:
+        return jsonify({'error': 'Failed to update portfolio item'}), 500
+
+    return jsonify(item.to_dict()), 200
