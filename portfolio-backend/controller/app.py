@@ -119,13 +119,13 @@ def create_app():
             db.session.commit()
 
             default_items = [
-                {'asset_class': 'stock', 'item_type': 'stock', 'ticker': 'AAPL', 'quantity': 50, 'purchase_price': 150.25, 'current_price': 228.45, 'purchase_date': '2023-06-15', 'realized_pnl': 820.50, 'sector': 'Technology', 'region': 'North America', 'price_history': [228.45]},
-                {'asset_class': 'stock', 'item_type': 'stock', 'ticker': 'MSFT', 'quantity': 30, 'purchase_price': 310.50, 'current_price': 417.89, 'purchase_date': '2023-08-20', 'realized_pnl': 445.00, 'sector': 'Technology', 'region': 'North America', 'price_history': [417.89]},
-                {'asset_class': 'stock', 'item_type': 'stock', 'ticker': 'GOOGL', 'quantity': 25, 'purchase_price': 100.00, 'current_price': 155.62, 'purchase_date': '2023-09-10', 'realized_pnl': -120.00, 'sector': 'Technology', 'region': 'North America', 'price_history': [155.62]},
-                {'asset_class': 'stock', 'item_type': 'stock', 'ticker': 'ASML', 'quantity': 10, 'purchase_price': 550.00, 'current_price': 680.30, 'purchase_date': '2023-11-02', 'realized_pnl': 0, 'sector': 'Technology', 'region': 'Europe', 'price_history': [680.30]},
-                {'asset_class': 'stock', 'item_type': 'stock', 'ticker': 'TSM', 'quantity': 40, 'purchase_price': 90.00, 'current_price': 165.20, 'purchase_date': '2024-01-18', 'realized_pnl': 210.00, 'sector': 'Technology', 'region': 'Asia', 'price_history': [165.20]},
-                {'asset_class': 'bond', 'item_type': 'bond', 'ticker': 'VBTLX', 'quantity': 100, 'purchase_price': 75.00, 'current_price': 76.50, 'purchase_date': '2023-07-01', 'realized_pnl': 30.00, 'sector': 'Fixed Income', 'region': 'North America', 'price_history': [76.50]},
-                {'asset_class': 'cash', 'item_type': 'cash', 'ticker': 'CASH', 'quantity': 5000, 'purchase_price': 1.0, 'current_price': 1.0, 'purchase_date': '2024-07-20', 'realized_pnl': 0, 'sector': 'Cash & Equivalents', 'region': 'North America', 'price_history': [1.0]},
+                {'asset_class': 'stock', 'item_type': 'stock', 'ticker': 'AAPL', 'quantity': 50, 'purchase_price': 150.25, 'purchase_date': '2023-06-15', 'sector': 'Technology', 'region': 'North America'},
+                {'asset_class': 'stock', 'item_type': 'stock', 'ticker': 'MSFT', 'quantity': 30, 'purchase_price': 310.50, 'purchase_date': '2023-08-20', 'sector': 'Technology', 'region': 'North America'},
+                {'asset_class': 'stock', 'item_type': 'stock', 'ticker': 'GOOGL', 'quantity': 25, 'purchase_price': 100.00, 'purchase_date': '2023-09-10', 'sector': 'Technology', 'region': 'North America'},
+                {'asset_class': 'stock', 'item_type': 'stock', 'ticker': 'ASML', 'quantity': 10, 'purchase_price': 550.00, 'purchase_date': '2023-11-02', 'sector': 'Technology', 'region': 'Europe'},
+                {'asset_class': 'stock', 'item_type': 'stock', 'ticker': 'TSM', 'quantity': 40, 'purchase_price': 90.00, 'purchase_date': '2024-01-18', 'sector': 'Technology', 'region': 'Asia'},
+                {'asset_class': 'bond', 'item_type': 'bond', 'ticker': 'VBTLX', 'quantity': 100, 'purchase_price': 75.00, 'purchase_date': '2023-07-01', 'sector': 'Fixed Income', 'region': 'North America'},
+                {'asset_class': 'cash', 'item_type': 'cash', 'ticker': 'CASH', 'quantity': 5000, 'purchase_price': 1.0, 'purchase_date': '2024-07-20', 'sector': 'Cash & Equivalents', 'region': 'North America'},
             ]
 
             for item_data in default_items:

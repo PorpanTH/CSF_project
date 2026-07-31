@@ -29,15 +29,15 @@ def query_demo():
                 print(f"    Owner: {portfolio.owner.name}")
                 print(f"    Items: {len(portfolio.items)}")
                 for item in portfolio.items:
-                    total_value = item.quantity * item.current_price
-                    print(f"      - {item.quantity} {item.ticker} ({item.asset_class}) @ ${item.current_price} = ${total_value:,.2f}")
+                    total_value = item.quantity * item.purchase_price
+                    print(f"      - {item.quantity} {item.ticker} ({item.asset_class}) @ ${item.purchase_price} = ${total_value:,.2f}")
                 print(f"    Metrics:")
                 print(f"      Total Value: ${metrics['totalValue']:,.2f}")
                 print(f"      Total Cost: ${metrics['totalCost']:,.2f}")
                 print(f"      Unrealized P&L: ${metrics['unrealizedPnL']:,.2f} ({metrics['unrealizedPnLPercent']:.2f}%)")
 
             total_portfolio_value = sum(
-                item.quantity * item.current_price
+                item.quantity * item.purchase_price
                 for portfolio in portfolios
                 for item in portfolio.items
             )

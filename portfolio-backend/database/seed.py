@@ -28,10 +28,10 @@ def seed_db():
 
             # Create sample items
             items_data = [
-                {'ticker': 'AAPL', 'quantity': 100, 'purchase_price': 150, 'current_price': 175, 'asset_class': 'Stocks'},
-                {'ticker': 'GOOGL', 'quantity': 50, 'purchase_price': 2000, 'current_price': 2300, 'asset_class': 'Stocks'},
-                {'ticker': 'BTC', 'quantity': 0.5, 'purchase_price': 40000, 'current_price': 65000, 'asset_class': 'Crypto'},
-                {'ticker': 'SPY', 'quantity': 200, 'purchase_price': 350, 'current_price': 425, 'asset_class': 'ETF'},
+                {'ticker': 'AAPL', 'quantity': 100, 'purchase_price': 150, 'asset_class': 'Stocks'},
+                {'ticker': 'GOOGL', 'quantity': 50, 'purchase_price': 2000, 'asset_class': 'Stocks'},
+                {'ticker': 'BTC', 'quantity': 0.5, 'purchase_price': 40000, 'asset_class': 'Crypto'},
+                {'ticker': 'SPY', 'quantity': 200, 'purchase_price': 350, 'asset_class': 'ETF'},
             ]
 
             for item_data in items_data:
@@ -40,7 +40,6 @@ def seed_db():
                     ticker=item_data['ticker'],
                     quantity=item_data['quantity'],
                     purchase_price=item_data['purchase_price'],
-                    current_price=item_data['current_price'],
                     asset_class=item_data['asset_class'],
                     item_type='investment',
                     purchase_date='2024-01-01'
