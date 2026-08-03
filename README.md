@@ -37,7 +37,7 @@ npm install
 ```bash
 cd portfolio-backend
 venv\Scripts\activate
-python app.py
+python -m controller.app
 ```
 
 **Expected output:**
@@ -132,15 +132,3 @@ lsof -ti:5000 | xargs kill -9
 4. **Delete Data**
    - Delete items from portfolio
    - Delete entire portfolios
-
----
-
-## Documentation
-
-- **Full Setup Guide**: [TESTING_AND_SETUP_GUIDE.md](TESTING_AND_SETUP_GUIDE.md)
-- **Implementation Details**: [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)
-- **Backend API**: [portfolio-backend/README.md](portfolio-backend/README.md)
-
----
-
-**Ready to go!** 🚀
