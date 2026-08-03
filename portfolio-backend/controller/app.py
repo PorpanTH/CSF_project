@@ -137,20 +137,6 @@ def create_app():
             db.session.add(user)
             db.session.commit()
 
-        current_price_map = {
-            'AAPL': 228.45,
-            'MSFT': 417.89,
-            'GOOGL': 155.62,
-            'ASML': 680.30,
-            'TSM': 165.20,
-            'VBTLX': 76.50,
-            'CASH': 1.0,
-        }
-        for item in PortfolioItem.query.all():
-            if item.current_price in (None, 0):
-                item.current_price = current_price_map.get((item.ticker or '').upper(), item.purchase_price)
-        db.session.commit()
-
         portfolio = Portfolio.query.filter_by(user_id=1).first()
         if not portfolio:
             app.logger.info('seeding default portfolio and holdings')

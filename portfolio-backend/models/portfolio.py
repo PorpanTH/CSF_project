@@ -27,8 +27,9 @@ class Portfolio(db.Model):
         for item in self.items:
             cost = item.quantity * item.purchase_price
             ticker = (item.ticker or '').upper()
-            stored_current_price = item.current_price or item.purchase_price
-            current_price = live_prices.get(ticker) or stored_current_price
+            current_price = live_prices.get(ticker)
+            if current_price is None:
+                current_price = getattr(item, 'current_price', None) or item.purchase_price
             current = item.quantity * current_price
             pnl = current - cost
 
@@ -60,6 +61,7 @@ class Portfolio(db.Model):
         }
 
     def to_dict(self, live_prices=None):
+        live_prices = live_prices or {}
         metrics = self.calculate_metrics(live_prices)
         return {
             'id': str(self.id),
@@ -67,7 +69,7 @@ class Portfolio(db.Model):
             'description': self.description,
             'createdAt': self.created_at.isoformat(),
             'updatedAt': self.updated_at.isoformat(),
-            'items': [item.to_dict() for item in self.items],
+            'items': [item.to_dict(live_prices.get((item.ticker or '').upper())) for item in self.items],
             'metrics': metrics
         }
 
@@ -115,8 +117,8 @@ class PortfolioItem(db.Model):
     def __repr__(self):
         return f'<PortfolioItem {self.ticker}>'
 
-    def to_dict(self):
-        current_price = self.current_price or self.purchase_price
+    def to_dict(self, live_price=None):
+        current_price = live_price if live_price is not None else (self.current_price or self.purchase_price)
         return {
             'id': str(self.id) if self.id is not None else None,
             'portfolioId': str(self.portfolio_id) if self.portfolio_id is not None else None,
