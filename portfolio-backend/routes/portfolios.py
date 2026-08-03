@@ -118,6 +118,8 @@ def add_portfolio_item(portfolio_id):
         quantity=data['quantity'],
         purchase_price=data['purchasePrice'],
         purchase_date=data['purchaseDate'],
+        current_price=data.get('currentPrice', data.get('current_price', data.get('purchasePrice', 0))),
+        name=data.get('name', ''),
         sector=data.get('sector', ''),
         region=data.get('region', '')
     )
@@ -156,6 +158,12 @@ def update_portfolio_item(portfolio_id, item_id):
         item.purchase_price = data['purchasePrice']
     if 'purchaseDate' in data:
         item.purchase_date = data['purchaseDate']
+    if 'currentPrice' in data:
+        item.current_price = data['currentPrice']
+    if 'current_price' in data:
+        item.current_price = data['current_price']
+    if 'name' in data:
+        item.name = data['name']
     if 'sector' in data:
         item.sector = data['sector']
     if 'region' in data:

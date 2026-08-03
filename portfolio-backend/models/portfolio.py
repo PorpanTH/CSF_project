@@ -27,7 +27,8 @@ class Portfolio(db.Model):
         for item in self.items:
             cost = item.quantity * item.purchase_price
             ticker = (item.ticker or '').upper()
-            current_price = live_prices.get(ticker, item.purchase_price)
+            stored_current_price = item.current_price or item.purchase_price
+            current_price = live_prices.get(ticker) or stored_current_price
             current = item.quantity * current_price
             pnl = current - cost
 
@@ -35,7 +36,7 @@ class Portfolio(db.Model):
             total_current += current
             total_pnl += pnl
 
-            asset_class = item.asset_class
+            asset_class = item.asset_class or item.item_type
             if asset_class not in asset_breakdown:
                 asset_breakdown[asset_class] = {
                     'value': 0,
@@ -82,6 +83,7 @@ class PortfolioItem(db.Model):
     quantity = db.Column(db.Float, nullable=False)
     purchase_price = db.Column(db.Float, nullable=False)
     purchase_date = db.Column(db.String(10), nullable=False)
+    current_price = db.Column(db.Float, nullable=False, default=0.0)
     name = db.Column(db.String(120), default='')
     sector = db.Column(db.String(100), default='')
     region = db.Column(db.String(100), default='')
@@ -93,7 +95,7 @@ class PortfolioItem(db.Model):
 
         positional_fields = [
             'id', 'portfolio_id', 'asset_class', 'item_type', 'ticker', 'quantity',
-            'purchase_price', 'purchase_date', 'sector', 'region', 'created_at', 'updated_at'
+            'purchase_price', 'purchase_date', 'current_price', 'sector', 'region', 'created_at', 'updated_at'
         ]
 
         if args:
@@ -114,15 +116,21 @@ class PortfolioItem(db.Model):
         return f'<PortfolioItem {self.ticker}>'
 
     def to_dict(self):
+        current_price = self.current_price or self.purchase_price
         return {
             'id': str(self.id) if self.id is not None else None,
             'portfolioId': str(self.portfolio_id) if self.portfolio_id is not None else None,
             'assetClass': self.asset_class,
+            'itemType': self.item_type or self.asset_class,
             'ticker': self.ticker,
             'quantity': self.quantity,
             'purchasePrice': self.purchase_price,
             'purchaseDate': self.purchase_date,
+            'currentPrice': current_price,
+            'createdAt': self.created_at.isoformat() if self.created_at else None,
+            'updatedAt': self.updated_at.isoformat() if self.updated_at else None,
             'name': self.name or '',
             'sector': self.sector or '',
-            'region': self.region or ''
+            'region': self.region or '',
+            'priceHistory': []
         }
