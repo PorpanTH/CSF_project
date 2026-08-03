@@ -450,7 +450,7 @@ export default function App() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Tracked assets</p>
-                <p className="text-2xl font-semibold text-gray-900 mt-2">{items.length}</p>
+                <p className="text-2xl font-semibold text-gray-900 mt-2">{holdings.length}</p>
               </div>
               <div className="rounded-2xl bg-violet-50 p-3 text-violet-600"><PieChart size={20} /></div>
             </div>
