@@ -21,8 +21,7 @@ class Portfolio(db.Model):
         live_prices = live_prices or {}
         total_cost = 0
         total_current = 0
-        total_realized_pnl = 0
-        max_drawdown = 0
+        total_pnl = 0
         asset_breakdown = {}
 
         for item in self.items:
@@ -30,37 +29,33 @@ class Portfolio(db.Model):
             ticker = (item.ticker or '').upper()
             current_price = live_prices.get(ticker, item.purchase_price)
             current = item.quantity * current_price
-            unrealized = 0
-            realized = 0
+            pnl = current - cost
 
             total_cost += cost
             total_current += current
-            total_realized_pnl += realized
+            total_pnl += pnl
 
             asset_class = item.asset_class
             if asset_class not in asset_breakdown:
                 asset_breakdown[asset_class] = {
                     'value': 0,
                     'cost': 0,
-                    'unrealizedPnL': 0,
-                    'realizedPnL': 0
+                    'pnl': 0
                 }
             asset_breakdown[asset_class]['value'] += current
             asset_breakdown[asset_class]['cost'] += cost
-            asset_breakdown[asset_class]['unrealizedPnL'] += unrealized
-            asset_breakdown[asset_class]['realizedPnL'] += realized
-
-        total_unrealized_pnl = total_current - total_cost
+            asset_breakdown[asset_class]['pnl'] += pnl
 
         return {
             'totalCost': total_cost,
             'totalValue': total_current,
-            'realizedPnL': total_realized_pnl,
-            'unrealizedPnL': total_unrealized_pnl,
-            'unrealizedPnLPercent': (total_unrealized_pnl / total_cost * 100) if total_cost > 0 else 0,
-            'realizedPnLPercent': (total_realized_pnl / total_cost * 100) if total_cost > 0 else 0,
-            'maxDrawdown': max_drawdown,
-            'assetBreakdown': asset_breakdown
+            'pnl': {
+                'total': total_pnl,
+                'byAssetClass': [
+                    {'assetClass': k, 'pnl': v['pnl']}
+                    for k, v in sorted(asset_breakdown.items())
+                ]
+            }
         }
 
     def to_dict(self, live_prices=None):

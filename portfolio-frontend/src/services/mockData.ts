@@ -1,4 +1,4 @@
-import { Portfolio, PnLByAssetClass, PnLRange, PnLSeriesPoint, HoldingFluctuation, BreakdownSlice, PortfolioItem, MarketEquity } from '../types'
+import { Portfolio, PnLRange, PnLSeriesPoint, HoldingFluctuation, BreakdownSlice, PortfolioItem, MarketEquity } from '../types'
 
 const priceHistory = (current: number, points = 30, volatility = 0.02) => {
   const history: number[] = []
@@ -23,49 +23,49 @@ const mockPortfolios: Portfolio[] = [
         id: 'item-1', portfolioId: '1', itemType: 'stock', ticker: 'AAPL',
         quantity: 50, purchasePrice: 150.25, purchaseDate: '2023-06-15', currentPrice: 228.45,
         createdAt: '2023-06-15T10:00:00Z', updatedAt: '2024-07-23T10:00:00Z',
-        sector: 'Technology', region: 'North America', realizedPnL: 820.50,
+        sector: 'Technology', region: 'North America',
         priceHistory: priceHistory(228.45),
       },
       {
         id: 'item-2', portfolioId: '1', itemType: 'stock', ticker: 'MSFT',
         quantity: 30, purchasePrice: 310.50, purchaseDate: '2023-08-20', currentPrice: 417.89,
         createdAt: '2023-08-20T10:00:00Z', updatedAt: '2024-07-23T10:00:00Z',
-        sector: 'Technology', region: 'North America', realizedPnL: 445.00,
+        sector: 'Technology', region: 'North America',
         priceHistory: priceHistory(417.89),
       },
       {
         id: 'item-3', portfolioId: '1', itemType: 'stock', ticker: 'GOOGL',
         quantity: 25, purchasePrice: 100.00, purchaseDate: '2023-09-10', currentPrice: 155.62,
         createdAt: '2023-09-10T10:00:00Z', updatedAt: '2024-07-23T10:00:00Z',
-        sector: 'Technology', region: 'North America', realizedPnL: -120.00,
+        sector: 'Technology', region: 'North America',
         priceHistory: priceHistory(155.62),
       },
       {
         id: 'item-9', portfolioId: '1', itemType: 'stock', ticker: 'ASML',
         quantity: 10, purchasePrice: 550.00, purchaseDate: '2023-11-02', currentPrice: 680.30,
         createdAt: '2023-11-02T10:00:00Z', updatedAt: '2024-07-23T10:00:00Z',
-        sector: 'Technology', region: 'Europe', realizedPnL: 0,
+        sector: 'Technology', region: 'Europe',
         priceHistory: priceHistory(680.30),
       },
       {
         id: 'item-10', portfolioId: '1', itemType: 'stock', ticker: 'TSM',
         quantity: 40, purchasePrice: 90.00, purchaseDate: '2024-01-18', currentPrice: 165.20,
         createdAt: '2024-01-18T10:00:00Z', updatedAt: '2024-07-23T10:00:00Z',
-        sector: 'Technology', region: 'Asia', realizedPnL: 210.00,
+        sector: 'Technology', region: 'Asia',
         priceHistory: priceHistory(165.20),
       },
       {
         id: 'item-4', portfolioId: '1', itemType: 'bond', ticker: 'VBTLX',
         quantity: 100, purchasePrice: 75.00, purchaseDate: '2023-07-01', currentPrice: 76.50,
         createdAt: '2023-07-01T10:00:00Z', updatedAt: '2024-07-23T10:00:00Z',
-        sector: 'Fixed Income', region: 'North America', realizedPnL: 30.00,
+        sector: 'Fixed Income', region: 'North America',
         priceHistory: priceHistory(76.50, 30, 0.005),
       },
       {
         id: 'item-5', portfolioId: '1', itemType: 'cash', ticker: 'CASH',
         quantity: 5000, purchasePrice: 1.0, purchaseDate: '2024-07-20', currentPrice: 1.0,
         createdAt: '2024-07-20T10:00:00Z', updatedAt: '2024-07-23T10:00:00Z',
-        sector: 'Cash & Equivalents', region: 'North America', realizedPnL: 0,
+        sector: 'Cash & Equivalents', region: 'North America',
         priceHistory: priceHistory(1.0, 30, 0),
       },
     ]
@@ -81,28 +81,28 @@ const mockPortfolios: Portfolio[] = [
         id: 'item-6', portfolioId: '2', itemType: 'bond', ticker: 'BND',
         quantity: 200, purchasePrice: 79.50, purchaseDate: '2024-01-15', currentPrice: 81.20,
         createdAt: '2024-01-15T10:00:00Z', updatedAt: '2024-07-23T10:00:00Z',
-        sector: 'Fixed Income', region: 'North America', realizedPnL: 60.00,
+        sector: 'Fixed Income', region: 'North America',
         priceHistory: priceHistory(81.20, 30, 0.005),
       },
       {
         id: 'item-11', portfolioId: '2', itemType: 'bond', ticker: 'BNDX',
         quantity: 150, purchasePrice: 48.00, purchaseDate: '2024-02-10', currentPrice: 49.10,
         createdAt: '2024-02-10T10:00:00Z', updatedAt: '2024-07-23T10:00:00Z',
-        sector: 'Fixed Income', region: 'Europe', realizedPnL: 0,
+        sector: 'Fixed Income', region: 'Europe',
         priceHistory: priceHistory(49.10, 30, 0.005),
       },
       {
         id: 'item-7', portfolioId: '2', itemType: 'stock', ticker: 'VTI',
         quantity: 75, purchasePrice: 220.00, purchaseDate: '2024-02-01', currentPrice: 245.30,
         createdAt: '2024-02-01T10:00:00Z', updatedAt: '2024-07-23T10:00:00Z',
-        sector: 'Diversified Equity', region: 'North America', realizedPnL: 95.00,
+        sector: 'Diversified Equity', region: 'North America',
         priceHistory: priceHistory(245.30),
       },
       {
         id: 'item-8', portfolioId: '2', itemType: 'cash', ticker: 'CASH',
         quantity: 10000, purchasePrice: 1.0, purchaseDate: '2024-07-15', currentPrice: 1.0,
         createdAt: '2024-07-15T10:00:00Z', updatedAt: '2024-07-23T10:00:00Z',
-        sector: 'Cash & Equivalents', region: 'North America', realizedPnL: 0,
+        sector: 'Cash & Equivalents', region: 'North America',
         priceHistory: priceHistory(1.0, 30, 0),
       },
     ]
@@ -238,33 +238,6 @@ export const getRegionSlices = (items: PortfolioItem[]): BreakdownSlice[] => {
   return buildSlices(buckets)
 }
 
-export const getPnLByAssetClass = (
-  items: PortfolioItem[],
-  extraRealized: Record<string, number> = {}
-): PnLByAssetClass[] => {
-  const buckets: Record<string, { realized: number; floating: number }> = {}
-
-  items.forEach(item => {
-    const key = ASSET_CLASS_LABELS[item.itemType]
-    if (!buckets[key]) buckets[key] = { realized: 0, floating: 0 }
-    buckets[key].realized += item.realizedPnL
-    buckets[key].floating += (item.currentPrice - item.purchasePrice) * item.quantity
-  })
-
-  Object.entries(extraRealized).forEach(([key, value]) => {
-    if (!buckets[key]) buckets[key] = { realized: 0, floating: 0 }
-    buckets[key].realized += value
-  })
-
-  return Object.entries(buckets).map(([assetClass, v]) => ({ assetClass, ...v }))
-}
-
-export const getTotalPnL = (items: PortfolioItem[], extraRealized: Record<string, number> = {}) => {
-  const breakdown = getPnLByAssetClass(items, extraRealized)
-  const realized = breakdown.reduce((s, b) => s + b.realized, 0)
-  const floating = breakdown.reduce((s, b) => s + b.floating, 0)
-  return { realized, floating, total: realized + floating }
-}
 
 const RANGE_CONFIG: Record<PnLRange, { points: number; unit: 'hour' | 'day' | 'month' }> = {
   daily: { points: 24, unit: 'hour' },
