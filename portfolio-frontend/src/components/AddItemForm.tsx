@@ -53,7 +53,6 @@ export const AddItemForm = ({ onSubmit, onCancel, initialData }: AddItemFormProp
         ticker: formData.ticker.toUpperCase(),
         sector: 'Unclassified',
         region: 'Unclassified',
-        realizedPnL: 0,
         priceHistory: [formData.currentPrice],
       })
     }

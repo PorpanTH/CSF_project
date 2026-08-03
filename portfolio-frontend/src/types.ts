@@ -11,7 +11,6 @@ export interface PortfolioItem {
   updatedAt: string
   sector: string
   region: string
-  realizedPnL: number
   priceHistory: number[]
 }
 
@@ -43,6 +42,10 @@ export interface PortfolioMetrics {
   percentageReturn: number
   dayChange: number
   dayChangePercent: number
+  pnl?: {
+    total: number
+    byAssetClass: PnLByAssetClass[]
+  }
 }
 
 export interface AllocationData {
@@ -60,8 +63,7 @@ export interface BreakdownSlice {
 
 export interface PnLByAssetClass {
   assetClass: string
-  realized: number
-  floating: number
+  pnl: number
 }
 
 export type PnLRange = 'daily' | 'weekly' | 'monthly' | 'ytd' | '1y' | '2y' | '3y'

@@ -9,11 +9,9 @@ import { ProductDetailModal } from './components/ProductDetailModal'
 import { Toast } from './components/Toast'
 import { portfolioAPI } from './services/api'
 import {
-  getPnLByAssetClass,
-  getTotalPnL,
   getHoldingsFluctuations,
 } from './services/mockData'
-import { PortfolioItem, Order, MarketEquity, PortfolioMetrics } from './types'
+import { PortfolioItem, MarketEquity, PortfolioMetrics } from './types'
 import { Header } from './components/Header.tsx'
 
 type ProductCategory = 'stock' | 'bond' | 'etf' | 'other'
@@ -131,7 +129,6 @@ export default function App() {
   const [portfolioId, setPortfolioId] = useState<string | null>(null)
   const [items, setItems] = useState<PortfolioItem[]>([])
   const [portfolioMetrics, setPortfolioMetrics] = useState<PortfolioMetrics | null>(null)
-  const [orders, setOrders] = useState<Order[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [activeTrade, setActiveTrade] = useState<{
     mode: 'buy' | 'sell'
@@ -196,7 +193,7 @@ export default function App() {
         purchasePrice: item.purchasePrice,
         purchaseDate: item.purchaseDate,
         currentPrice: item.currentPrice,
-        realizedPnL: item.realizedPnL,
+        assetClass: item.itemType,
         sector: item.sector,
         region: item.region,
         priceHistory: item.priceHistory,
@@ -227,8 +224,7 @@ export default function App() {
     return savedItems
   }
   const totalPortfolioValue = portfolioMetrics?.totalValue ?? 0
-  const pnlByAssetClass = useMemo(() => getPnLByAssetClass(items), [items])
-  const totals = useMemo(() => getTotalPnL(items), [items])
+  const pnl = portfolioMetrics?.pnl ?? { total: 0, byAssetClass: [] }
   const holdings = useMemo(() => getHoldingsFluctuations(items), [items])
   const marketCatalog = useMemo<MarketEquity[]>(() => PRODUCT_OPTIONS.map(product => ({
     ticker: product.ticker,
@@ -240,18 +236,6 @@ export default function App() {
     priceHistory: [],
   })), [])
 
-  const createOrder = (order: Omit<Order, 'id' | 'status'>) => {
-    const id = uid('order')
-    const newOrder: Order = { ...order, id, status: 'processing' }
-    setOrders(prev => [newOrder, ...prev])
-    window.setTimeout(() => {
-      setOrders(prev => prev.map(o => o.id === id ? { ...o, status: 'completed' } : o))
-    }, 1200)
-  }
-
-  const completeOrder = (order: Omit<Order, 'id' | 'status'>) => {
-    createOrder(order)
-  }
 
   const handleConfirmTrade = async (quantity: number) => {
     if (!activeTrade) return
@@ -288,7 +272,6 @@ export default function App() {
             updatedAt: timestamp,
             sector: activeTrade.sector ?? 'Unknown',
             region: activeTrade.region ?? 'Unknown',
-            realizedPnL: 0,
             priceHistory: [price],
           },
         ]
@@ -296,7 +279,7 @@ export default function App() {
 
       try {
         await commitItems(nextItems)
-        completeOrder({ type: 'buy', ticker, quantity, price, total: totalCost, date: timestamp })
+        await loadPortfolio()
         setToast({ message: `Placed buy order for ${quantity} ${ticker}.`, type: 'success' })
       } catch (error) {
         setToast({ message: 'Failed to persist buy order to the backend.', type: 'error' })
@@ -319,8 +302,6 @@ export default function App() {
       }
 
       const proceeds = quantity * price
-      const costBasis = quantity * item.purchasePrice
-      const realizedGain = proceeds - costBasis
       const nextItems = items.flatMap(i => {
         if (i.id !== item.id) return [i]
         const remaining = i.quantity - quantity
@@ -328,7 +309,6 @@ export default function App() {
         return [{
           ...i,
           quantity: remaining,
-          realizedPnL: Number((i.realizedPnL + realizedGain).toFixed(2)),
           updatedAt: timestamp,
           priceHistory: [...i.priceHistory.slice(-29), price],
         }]
@@ -336,7 +316,7 @@ export default function App() {
 
       try {
         await commitItems(nextItems)
-        completeOrder({ type: 'sell', ticker, quantity, price, total: proceeds, date: timestamp })
+        await loadPortfolio()
         setToast({ message: `Placed sell order for ${quantity} ${ticker}.`, type: 'success' })
       } catch (error) {
         setToast({ message: 'Failed to persist sell order to the backend.', type: 'error' })
@@ -441,9 +421,9 @@ export default function App() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Total P/L</p>
-                <p className={`text-2xl font-semibold mt-2 ${totals.total >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>${totals.total.toLocaleString('en-US', { minimumFractionDigits: 0 })}</p>
+                <p className={`text-2xl font-semibold mt-2 ${pnl.total >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>${pnl.total.toLocaleString('en-US', { minimumFractionDigits: 0 })}</p>
               </div>
-              <div className={`rounded-2xl p-3 ${totals.total >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}><ArrowUpRight size={20} /></div>
+              <div className={`rounded-2xl p-3 ${pnl.total >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}><ArrowUpRight size={20} /></div>
             </div>
           </div>
           <div className="rounded-3xl border border-slate-200 bg-white p-5">
@@ -458,7 +438,7 @@ export default function App() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 mb-8">
-          <PnLOverview breakdown={pnlByAssetClass} totals={totals} />
+          <PnLOverview total={pnl.total} breakdown={pnl.byAssetClass} />
           <div className="space-y-6">
             <div className="card border border-slate-200">
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -474,7 +454,7 @@ export default function App() {
                 </div>
               </div>
               <div className="p-6">
-                <AccumulatedPnLChart endValue={totals.total} />
+                <AccumulatedPnLChart endValue={pnl.total} />
               </div>
             </div>
           </div>
