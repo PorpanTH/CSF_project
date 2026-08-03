@@ -1,14 +1,43 @@
 import logging
 import time
+from urllib.parse import urlparse
 
 from flask import Flask, jsonify, g, request
 from flask_cors import CORS
 import os
 from dotenv import load_dotenv
 from sqlalchemy import event
-from repository import test_connection
+from database.db import db
 
 load_dotenv()
+
+
+def _get_database_uri():
+    database_url = os.getenv('DATABASE_URL')
+    if database_url:
+        parsed = urlparse(database_url)
+        if parsed.scheme in ('http', 'https'):
+            scheme = 'mysql+mysqlconnector'
+        elif parsed.scheme == 'mysql':
+            scheme = 'mysql+mysqlconnector'
+        else:
+            return database_url
+
+        username = parsed.username or os.getenv('DB_USER', '')
+        password = parsed.password or os.getenv('DB_PASSWORD', '')
+        host = parsed.hostname or os.getenv('DB_HOST', 'localhost')
+        port = parsed.port or os.getenv('DB_PORT') or 3306
+        database_name = parsed.path.lstrip('/') or os.getenv('DB_DATABASE', '')
+        credentials = f'{username}:{password}@' if username or password else ''
+        return f'{scheme}://{credentials}{host}:{int(port)}/{database_name}'
+
+    host = os.getenv('DB_HOST', 'localhost')
+    port = int(os.getenv('DB_PORT', '3306'))
+    user = os.getenv('DB_USER', '')
+    password = os.getenv('DB_PASSWORD', '')
+    database_name = os.getenv('DB_DATABASE', '')
+    credentials = f'{user}:{password}@' if user or password else ''
+    return f'mysql+mysqlconnector://{credentials}{host}:{port}/{database_name}'
 
 def create_app():
     app = Flask(__name__)
@@ -22,7 +51,8 @@ def create_app():
     app.logger.propagate = False
 
     # Configuration
-    db = test_connection.get_database_connection()
+    app.config['SQLALCHEMY_DATABASE_URI'] = _get_database_uri()
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # Initialize extensions
     db.init_app(app)
