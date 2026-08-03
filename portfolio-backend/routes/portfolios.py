@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify, current_app
+import yfinance as yf
 from database.db import db
 from models.portfolio import Portfolio, PortfolioItem
 from routes.auth import get_default_user
@@ -11,12 +12,25 @@ USER_ID = 1
 def _log_action(action, **details):
     current_app.logger.info('%s %s', action, details)
 
+
+def _get_live_prices(items):
+    live_prices = {}
+    for ticker in {item.ticker.strip().upper() for item in items if item.ticker}:
+        try:
+            history = yf.Ticker(ticker).history(period='1d')
+            if not history.empty:
+                live_prices[ticker] = float(history['Close'].iloc[-1])
+        except Exception:
+            continue
+    return live_prices
+
 @portfolio_bp.route('/portfolios', methods=['GET'])
+@portfolio_bp.route('/portfolios/', methods=['GET'])
 def get_portfolios():
     _log_action('list portfolios', user_id=USER_ID)
     portfolios = Portfolio.query.filter_by(user_id=USER_ID).all()
     current_app.logger.debug('found %s portfolios', len(portfolios))
-    return jsonify([p.to_dict() for p in portfolios]), 200
+    return jsonify([p.to_dict(_get_live_prices(p.items)) for p in portfolios]), 200
 
 @portfolio_bp.route('/portfolios', methods=['POST'])
 def create_portfolio():
@@ -31,7 +45,7 @@ def create_portfolio():
         db.session.add(portfolio)
         db.session.commit()
         _log_action('created portfolio', portfolio_id=portfolio.id, name=portfolio.name)
-        return jsonify(portfolio.to_dict()), 201
+        return jsonify(portfolio.to_dict(_get_live_prices(portfolio.items))), 201
     except Exception as e:
         current_app.logger.exception('failed to create portfolio')
         db.session.rollback()
@@ -43,7 +57,7 @@ def get_portfolio(portfolio_id):
     portfolio = Portfolio.query.filter_by(id=portfolio_id, user_id=USER_ID).first()
     if not portfolio:
         return jsonify({'error': 'Portfolio not found'}), 404
-    return jsonify(portfolio.to_dict()), 200
+    return jsonify(portfolio.to_dict(_get_live_prices(portfolio.items))), 200
 
 @portfolio_bp.route('/portfolios/<int:portfolio_id>', methods=['PUT'])
 def update_portfolio(portfolio_id):
@@ -61,7 +75,7 @@ def update_portfolio(portfolio_id):
     try:
         db.session.commit()
         _log_action('updated portfolio', portfolio_id=portfolio.id)
-        return jsonify(portfolio.to_dict()), 200
+        return jsonify(portfolio.to_dict(_get_live_prices(portfolio.items))), 200
     except Exception as e:
         current_app.logger.exception('failed to update portfolio')
         db.session.rollback()

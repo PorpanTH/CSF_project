@@ -13,7 +13,7 @@ import {
   getTotalPnL,
   getHoldingsFluctuations,
 } from './services/mockData'
-import { PortfolioItem, Order, MarketEquity } from './types'
+import { PortfolioItem, Order, MarketEquity, PortfolioMetrics } from './types'
 import { Header } from './components/Header.tsx'
 
 type ProductCategory = 'stock' | 'bond' | 'etf' | 'other'
@@ -130,6 +130,7 @@ const PRODUCT_OPTIONS: ProductOption[] = [
 export default function App() {
   const [portfolioId, setPortfolioId] = useState<string | null>(null)
   const [items, setItems] = useState<PortfolioItem[]>([])
+  const [portfolioMetrics, setPortfolioMetrics] = useState<PortfolioMetrics | null>(null)
   const [orders, setOrders] = useState<Order[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [activeTrade, setActiveTrade] = useState<{
@@ -162,6 +163,7 @@ export default function App() {
 
       setPortfolioId(portfolio.id)
       setItems(portfolio.items)
+      setPortfolioMetrics(portfolio.metrics ?? null)
     } catch (error) {
       setToast({ message: 'Failed to load portfolio from the backend.', type: 'error' })
     } finally {
@@ -224,10 +226,7 @@ export default function App() {
     setItems(savedItems)
     return savedItems
   }
-  const totalPortfolioValue = useMemo(
-    () => items.reduce((sum, item) => sum + item.quantity * item.currentPrice, 0),
-    [items]
-  )
+  const totalPortfolioValue = portfolioMetrics?.totalValue ?? 0
   const pnlByAssetClass = useMemo(() => getPnLByAssetClass(items), [items])
   const totals = useMemo(() => getTotalPnL(items), [items])
   const holdings = useMemo(() => getHoldingsFluctuations(items), [items])
