@@ -22,8 +22,8 @@ export const PnLOverview = ({ total, breakdown }: PnLOverviewProps) => {
     <div className="card border border-slate-200">
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Performance summary</p>
-          <h2 className="text-2xl font-bold text-gray-900 mt-2">Profit &amp; Loss overview</h2>
+          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Performance Summary</p>
+          <h2 className="text-2xl font-bold text-gray-900 mt-2">Profit &amp; Loss Overview</h2>
         </div>
       </div>
 

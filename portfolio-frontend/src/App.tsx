@@ -439,27 +439,8 @@ export default function App() {
 
         <div className="grid gap-6 md:grid-cols-2 mb-8">
           <PnLOverview total={pnl.total} breakdown={pnl.byAssetClass} />
-          <div className="space-y-6">
-            <div className="card border border-slate-200">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="px-6 py-5 border-b border-slate-100">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Performance trend</p>
-                    <h2 className="text-xl font-bold text-gray-900 mt-2">Accumulated P/L</h2>
-                  </div>
-                  <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                    Live curve
-                  </div>
-                </div>
-              </div>
-              <div className="p-6">
-                {portfolioId && <AccumulatedPnLChart portfolioId={portfolioId!} endValue={pnl.total} />}
-              </div>
-            </div>
-          </div>
+          {portfolioId && <AccumulatedPnLChart portfolioId={portfolioId!} endValue={pnl.total} />}
         </div>
-      </div>
 
         <div className="grid gap-6 md:grid-cols-2 mb-8">
           <div className="card border border-slate-200 flex flex-col">

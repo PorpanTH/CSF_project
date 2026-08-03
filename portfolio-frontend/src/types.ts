@@ -66,7 +66,7 @@ export interface PnLByAssetClass {
   pnl: number
 }
 
-export type PnLRange = 'daily' | 'weekly' | 'monthly' | 'ytd' | '1y' | '2y' | '3y'
+export type PnLRange = 'daily' | 'weekly' | 'monthly' | 'ytd'
 
 export interface PnLSeriesPoint {
   date: string
