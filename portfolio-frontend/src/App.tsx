@@ -454,7 +454,7 @@ export default function App() {
                 </div>
               </div>
               <div className="p-6">
-                <AccumulatedPnLChart endValue={pnl.total} />
+                {portfolioId && <AccumulatedPnLChart portfolioId={portfolioId!} endValue={pnl.total} />}
               </div>
             </div>
           </div>

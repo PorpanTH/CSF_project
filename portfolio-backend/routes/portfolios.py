@@ -3,6 +3,14 @@ import yfinance as yf
 from database.db import db
 from models.portfolio import Portfolio, PortfolioItem
 from routes.auth import get_default_user
+from services.nav_history import (
+    record_nav_snapshot,
+    get_nav_history,
+    calculate_accumulated_pnl,
+    filter_by_range
+)
+from datetime import datetime, timedelta
+import time
 
 portfolio_bp = Blueprint('portfolios', __name__)
 
@@ -190,3 +198,173 @@ def delete_portfolio_item(portfolio_id, item_id):
         current_app.logger.exception('failed to delete portfolio item')
         db.session.rollback()
         return jsonify({'error': 'Failed to delete item'}), 500
+
+
+@portfolio_bp.route('/portfolios/<int:portfolio_id>/nav-snapshot', methods=['POST'])
+def record_portfolio_nav(portfolio_id):
+    _log_action('record nav snapshot request', portfolio_id=portfolio_id)
+
+    portfolio = Portfolio.query.filter_by(id=portfolio_id, user_id=USER_ID).first()
+    if not portfolio:
+        return jsonify({'error': 'Portfolio not found'}), 404
+
+    if not portfolio.items:
+        _log_action('empty portfolio', portfolio_id=portfolio_id)
+        return jsonify({'error': 'Portfolio has no items'}), 400
+
+    try:
+        # Use existing calculate_metrics with live prices
+        live_prices = _get_live_prices(portfolio.items)
+        metrics = portfolio.calculate_metrics(live_prices)
+        nav = metrics['totalValue']
+
+        # Record the snapshot
+        snapshot = record_nav_snapshot(portfolio_id, nav)
+
+        _log_action('nav snapshot recorded', portfolio_id=portfolio_id, nav=nav)
+        return jsonify(snapshot.to_dict()), 201
+
+    except Exception as e:
+        current_app.logger.exception('failed to record nav snapshot')
+        return jsonify({'error': 'Failed to record NAV snapshot'}), 500
+
+
+@portfolio_bp.route('/portfolios/<int:portfolio_id>/accumulated-pnl', methods=['GET'])
+def get_accumulated_pnl(portfolio_id):
+    """Get accumulated P/L for a portfolio from historical NAV snapshots.
+
+    Query Parameters:
+    - range: 'daily' | 'weekly' | 'monthly' | 'ytd' (default: 'ytd')
+
+    Returns:
+    [{date: "YYYY-MM-DD", accumulated: number}, ...]
+    """
+    _log_action('get accumulated pnl', portfolio_id=portfolio_id)
+
+    portfolio = Portfolio.query.filter_by(id=portfolio_id, user_id=USER_ID).first()
+    if not portfolio:
+        return jsonify({'error': 'Portfolio not found'}), 404
+
+    try:
+        range_param = request.args.get('range', 'ytd').lower()
+        if range_param not in ['daily', 'weekly', 'monthly', 'ytd']:
+            range_param = 'ytd'
+
+        # Get NAV history
+        snapshots = get_nav_history(portfolio_id)
+
+        if not snapshots:
+            _log_action('no nav history', portfolio_id=portfolio_id)
+            return jsonify([]), 200
+
+        # Filter by range
+        filtered_snapshots = filter_by_range(snapshots, range_param)
+
+        # Calculate accumulated P/L
+        accumulated_pnl_data = calculate_accumulated_pnl(filtered_snapshots)
+
+        _log_action(
+            'accumulated pnl calculated',
+            portfolio_id=portfolio_id,
+            data_points=len(accumulated_pnl_data),
+            range=range_param
+        )
+
+        return jsonify(accumulated_pnl_data), 200
+
+    except Exception as e:
+        current_app.logger.exception('failed to calculate accumulated pnl')
+        return jsonify({'error': 'Failed to calculate accumulated PnL'}), 500
+
+
+@portfolio_bp.route('/portfolios/<int:portfolio_id>/backfill-nav', methods=['POST'])
+def backfill_nav_history(portfolio_id):
+    """Backfill NAV snapshots from portfolio creation date to today.
+
+    Fetches historical prices and calculates NAV for each trading day.
+    """
+    _log_action('backfill nav history request', portfolio_id=portfolio_id)
+
+    portfolio = Portfolio.query.filter_by(id=portfolio_id, user_id=USER_ID).first()
+    if not portfolio:
+        return jsonify({'error': 'Portfolio not found'}), 404
+
+    if not portfolio.items:
+        return jsonify({'error': 'Portfolio has no items'}), 400
+
+    try:
+        start_date = portfolio.created_at.date()
+        end_date = datetime.now().date()
+        current_date = start_date
+        count = 0
+
+        _log_action(
+            'backfilling nav',
+            portfolio_id=portfolio_id,
+            start_date=str(start_date),
+            end_date=str(end_date)
+        )
+
+        while current_date <= end_date:
+            # Only process trading days (skip weekends)
+            if current_date.weekday() < 5:
+                live_prices = {}
+
+                # Fetch prices for that date (only for items that existed on that date)
+                for idx, item in enumerate(portfolio.items):
+                    if item.purchase_date <= str(current_date):
+                        ticker = item.ticker.strip().upper()
+                        if ticker == 'BTC':
+                            ticker = 'BTC-USD'
+
+                        # Retry logic with exponential backoff
+                        max_retries = 3
+                        for attempt in range(max_retries):
+                            try:
+                                # Add delay between ticker requests to avoid rate limiting
+                                if idx > 0:
+                                    time.sleep(1)
+
+                                data = yf.download(
+                                    ticker,
+                                    start=str(current_date),
+                                    end=str(current_date),
+                                    progress=False
+                                )
+
+                                if not data.empty:
+                                    live_prices[ticker] = float(data['Close'].iloc[-1])
+                                break  # Success, exit retry loop
+
+                            except Exception as e:
+                                if attempt < max_retries - 1:
+                                    wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s
+                                    current_app.logger.warning(
+                                        f'Retry {attempt + 1}/{max_retries} for {ticker} on {current_date}. '
+                                        f'Waiting {wait_time}s. Error: {str(e)[:50]}'
+                                    )
+                                    time.sleep(wait_time)
+                                else:
+                                    current_app.logger.debug(f'Could not fetch {ticker} for {current_date} after {max_retries} attempts')
+                                    continue
+
+                # Calculate NAV for that date
+                if live_prices:
+                    metrics = portfolio.calculate_metrics(live_prices)
+                    nav = metrics['totalValue']
+                    record_nav_snapshot(portfolio_id, nav, current_date)
+                    count += 1
+
+            current_date += timedelta(days=1)
+
+        _log_action('backfill completed', portfolio_id=portfolio_id, snapshots_created=count)
+        return jsonify({
+            'message': f'Backfilled {count} NAV snapshots',
+            'start_date': str(start_date),
+            'end_date': str(end_date),
+            'snapshots': count
+        }), 201
+
+    except Exception as e:
+        current_app.logger.exception('backfill nav history failed')
+        return jsonify({'error': f'Backfill failed: {str(e)}'}), 500

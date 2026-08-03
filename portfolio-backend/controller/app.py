@@ -8,8 +8,49 @@ import os
 from dotenv import load_dotenv
 from sqlalchemy import event
 from database.db import db
+from apscheduler.schedulers.background import BackgroundScheduler
 
 load_dotenv()
+
+
+def schedule_daily_nav_snapshots(app):
+    """Schedule daily NAV snapshot recording at market close (4 PM ET)."""
+    try:
+        from apscheduler.schedulers.background import BackgroundScheduler
+        from models.portfolio import Portfolio
+        from services.nav_history import record_nav_snapshot
+        from routes.portfolios import _get_live_prices
+
+        scheduler = BackgroundScheduler()
+
+        def capture_all_portfolios():
+            with app.app_context():
+                try:
+                    portfolios = Portfolio.query.all()
+                    for portfolio in portfolios:
+                        try:
+                            if not portfolio.items:
+                                continue
+
+                            live_prices = _get_live_prices(portfolio.items)
+                            metrics = portfolio.calculate_metrics(live_prices)
+                            nav = metrics['totalValue']
+                            record_nav_snapshot(portfolio.id, nav)
+                            app.logger.info(f'Recorded NAV for portfolio {portfolio.id}: {nav}')
+                        except Exception as e:
+                            app.logger.error(f'Failed to record NAV for portfolio {portfolio.id}: {e}')
+                except Exception as e:
+                    app.logger.error(f'Error in daily NAV snapshot scheduler: {e}')
+
+        # Schedule for 4 PM ET daily (16:00)
+        scheduler.add_job(capture_all_portfolios, 'cron', hour=16, minute=0, id='daily_nav_snapshot')
+        scheduler.start()
+        app.logger.info('Daily NAV snapshot scheduler started (runs at 4 PM daily)')
+        return scheduler
+
+    except ImportError:
+        app.logger.warning('APScheduler not installed. Daily NAV snapshots will not run automatically.')
+        return None
 
 
 def _get_database_uri():
@@ -161,6 +202,9 @@ def create_app():
             for item_data in default_items:
                 db.session.add(PortfolioItem(portfolio_id=portfolio.id, **item_data))
             db.session.commit()
+
+    # Start daily NAV snapshot scheduler
+    schedule_daily_nav_snapshots(app)
 
     return app
 

@@ -1,5 +1,5 @@
 from database.db import db
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class Portfolio(db.Model):
@@ -125,4 +125,27 @@ class PortfolioItem(db.Model):
             'name': self.name or '',
             'sector': self.sector or '',
             'region': self.region or ''
+        }
+
+
+class PortfolioNavHistory(db.Model):
+    __tablename__ = 'portfolio_nav_history'
+
+    id = db.Column(db.Integer, primary_key=True)
+    portfolio_id = db.Column(db.Integer, db.ForeignKey('portfolios.id'), nullable=False)
+    snapshot_date = db.Column(db.Date, nullable=False, unique=False)
+    nav = db.Column(db.Float, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        db.UniqueConstraint('portfolio_id', 'snapshot_date', name='unique_portfolio_date'),
+    )
+
+    def __repr__(self):
+        return f'<PortfolioNavHistory portfolio_id={self.portfolio_id} date={self.snapshot_date} nav={self.nav}>'
+
+    def to_dict(self):
+        return {
+            'date': self.snapshot_date.isoformat(),
+            'nav': self.nav
         }
