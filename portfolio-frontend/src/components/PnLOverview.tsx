@@ -52,7 +52,7 @@ export const PnLOverview = ({ total, breakdown }: PnLOverviewProps) => {
           <tbody>
             {breakdown.map(row => (
               <tr key={row.assetClass} className="border-b border-gray-100 last:border-0">
-                <td className="py-3 font-medium text-gray-900">{row.assetClass}</td>
+                <td className="py-3 font-medium text-gray-900">{row.assetClass.toUpperCase()}</td>
                 <td className="py-3 text-right"><SignedValue value={row.pnl} /></td>
               </tr>
             ))}

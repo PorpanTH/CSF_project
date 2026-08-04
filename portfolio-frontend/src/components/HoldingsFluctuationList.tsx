@@ -43,15 +43,17 @@ export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuatio
                       {holding.quantity} shares
                     </span>
                   </div>
-                  <p className="mt-1 text-sm text-gray-500">${holding.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                  <p className="mt-1 text-sm text-gray-500">Price: ${holding.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                  <p className="text-xs text-gray-500">Cost basis: ${holding.purchasePrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <Sparkline history={holding.priceHistory} color={color} />
-                  <div className="text-right min-w-[72px]">
-                    <p className="text-sm font-semibold" style={{ color: positive ? STATUS.goodText : STATUS.critical }}>
-                      {positive ? '+' : ''}{holding.changePercent.toFixed(2)}%
+
+                  <div className="rounded-xl px-3 py-2 text-right min-w-[96px]">
+                    <p className={`text-sm font-semibold ${holding.unrealizedPnl >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      {holding.unrealizedPnl >= 0 ? '+' : ''}${holding.unrealizedPnl.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </p>
-                    <p className="text-xs text-gray-500">1M trend</p>
+                    <p className="text-[11px] uppercase tracking-wide text-gray-500">P/L</p>
                   </div>
                   <button
                     onClick={() => onSell(holding.ticker)}
