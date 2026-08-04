@@ -282,7 +282,7 @@ export const getAccumulatedPnLSeries = (range: PnLRange, endValue: number): PnLS
 
 export const getHoldingsFluctuations = (items: PortfolioItem[]): HoldingFluctuation[] => {
   return items
-    .filter(item => item.itemType === 'stock' || item.itemType === 'etf')
+    .filter(item => item.itemType !== 'cash')
     .map(item => {
       const first = item.priceHistory[0]
       const changePercent = first > 0 ? ((item.currentPrice - first) / first) * 100 : 0
