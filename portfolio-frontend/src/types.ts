@@ -77,8 +77,10 @@ export interface HoldingFluctuation {
   ticker: string
   itemType: 'stock' | 'bond' | 'cash' | 'etf' | 'other'
   quantity: number
+  purchasePrice: number
   currentPrice: number
   changePercent: number
+  unrealizedPnl: number
   priceHistory: number[]
 }
 

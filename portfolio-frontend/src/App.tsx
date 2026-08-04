@@ -45,6 +45,12 @@ const calculateWeightedAveragePurchasePrice = (
   return Number((totalCost / totalQuantity).toFixed(2))
 }
 
+const findMatchingHolding = (
+  holdings: PortfolioItem[],
+  ticker: string,
+  itemType: PortfolioItem['itemType'],
+) => holdings.find(holding => holding.ticker.toUpperCase() === ticker.toUpperCase() && holding.itemType === itemType)
+
 const MOCK_NEWS: Record<string, { title: string; source: string; summary: string }[]> = {
   AAPL: [
     {
@@ -263,7 +269,7 @@ export default function App() {
       const totalCost = quantity * price
 
       const itemType = activeTrade.itemType ?? 'stock'
-      const existing = items.find(i => i.ticker === ticker && i.itemType === itemType)
+      const existing = findMatchingHolding(items, ticker, itemType)
       let nextItems = items.map(i => i.itemType === 'cash' ? { ...i, quantity: Number((i.quantity - totalCost).toFixed(2)) } : i)
       if (existing) {
         const newQty = existing.quantity + quantity

@@ -43,7 +43,11 @@ export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuatio
                       {holding.quantity} shares
                     </span>
                   </div>
-                  <p className="mt-1 text-sm text-gray-500">${holding.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                  <p className="mt-1 text-sm text-gray-500">Price: ${holding.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                  <p className="text-xs text-gray-500">Cost basis: ${holding.purchasePrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                  <p className={`text-xs font-semibold ${holding.unrealizedPnl >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    P/L: {holding.unrealizedPnl >= 0 ? '+' : ''}${holding.unrealizedPnl.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <Sparkline history={holding.priceHistory} color={color} />
