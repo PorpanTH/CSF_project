@@ -42,10 +42,10 @@ def schedule_daily_nav_snapshots(app):
                 except Exception as e:
                     app.logger.error(f'Error in daily NAV snapshot scheduler: {e}')
 
-        # Schedule for 4 PM ET daily (16:00)
-        scheduler.add_job(capture_all_portfolios, 'cron', hour=16, minute=0, id='daily_nav_snapshot')
+        # Schedule for 3 PM HKT daily (15:00 HKT = 07:00 UTC)
+        scheduler.add_job(capture_all_portfolios, 'cron', hour=7, minute=0, timezone='UTC', id='daily_nav_snapshot')
         scheduler.start()
-        app.logger.info('Daily NAV snapshot scheduler started (runs at 4 PM daily)')
+        app.logger.info('Daily NAV snapshot scheduler started (runs at 3 PM HKT / 7 AM UTC daily)')
         return scheduler
 
     except ImportError:

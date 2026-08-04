@@ -7,8 +7,10 @@ from services.nav_history import (
     record_nav_snapshot,
     get_nav_history,
     calculate_accumulated_pnl,
+    calculate_daily_pnl,
     filter_by_range
 )
+from services.nav_seeding import seed_historical_nav, get_portfolio_seed_data
 from datetime import datetime, timedelta
 import time
 
@@ -276,8 +278,11 @@ def get_accumulated_pnl(portfolio_id):
         # Filter by range
         filtered_snapshots = filter_by_range(snapshots, range_param)
 
-        # Calculate accumulated P/L
-        accumulated_pnl_data = calculate_accumulated_pnl(filtered_snapshots)
+        # Calculate P/L based on range
+        if range_param == 'daily':
+            accumulated_pnl_data = calculate_daily_pnl(filtered_snapshots)
+        else:
+            accumulated_pnl_data = calculate_accumulated_pnl(filtered_snapshots)
 
         _log_action(
             'accumulated pnl calculated',
@@ -384,3 +389,81 @@ def backfill_nav_history(portfolio_id):
     except Exception as e:
         current_app.logger.exception('backfill nav history failed')
         return jsonify({'error': f'Backfill failed: {str(e)}'}), 500
+
+
+@portfolio_bp.route('/portfolios/test-nav-snapshot', methods=['POST'])
+def test_nav_snapshot():
+    """Test endpoint to manually trigger NAV snapshot for all portfolios."""
+    _log_action('test nav snapshot triggered')
+
+    try:
+        portfolios = Portfolio.query.all()
+        results = []
+
+        for portfolio in portfolios:
+            try:
+                if not portfolio.items:
+                    continue
+
+                live_prices = _get_live_prices(portfolio.items)
+                metrics = portfolio.calculate_metrics(live_prices)
+                nav = metrics['totalValue']
+                record_nav_snapshot(portfolio.id, nav)
+                results.append({'portfolio_id': portfolio.id, 'nav': nav, 'status': 'success'})
+                current_app.logger.info(f'Test: Recorded NAV for portfolio {portfolio.id}: {nav}')
+            except Exception as e:
+                results.append({'portfolio_id': portfolio.id, 'status': 'failed', 'error': str(e)})
+                current_app.logger.error(f'Test: Failed to record NAV for portfolio {portfolio.id}: {e}')
+
+        return jsonify({'message': 'Test NAV snapshot completed', 'results': results}), 200
+
+    except Exception as e:
+        current_app.logger.exception('test nav snapshot failed')
+        return jsonify({'error': f'Test failed: {str(e)}'}), 500
+
+
+@portfolio_bp.route('/portfolios/<int:portfolio_id>/seed-nav-history', methods=['POST'])
+def seed_nav_history(portfolio_id):
+    """Seed realistic historical NAV data from portfolio creation date to today.
+
+    Uses realistic daily market variations (±0.5% to ±3%) to simulate actual price movements.
+    """
+    _log_action('seed nav history request', portfolio_id=portfolio_id)
+
+    portfolio = Portfolio.query.filter_by(id=portfolio_id, user_id=USER_ID).first()
+    if not portfolio:
+        return jsonify({'error': 'Portfolio not found'}), 404
+
+    if not portfolio.items:
+        return jsonify({'error': 'Portfolio has no items'}), 400
+
+    try:
+        # Get current NAV to use as base
+        live_prices = _get_live_prices(portfolio.items)
+        metrics = portfolio.calculate_metrics(live_prices)
+        current_nav = metrics['totalValue']
+
+        # Get seeding parameters
+        seed_params = get_portfolio_seed_data(portfolio_id, current_nav)
+        if not seed_params:
+            return jsonify({'error': 'Could not determine portfolio dates'}), 400
+
+        # Seed historical data
+        count = seed_historical_nav(
+            portfolio_id,
+            seed_params['start_date'],
+            seed_params['end_date'],
+            seed_params['starting_nav']
+        )
+
+        _log_action('nav history seeded', portfolio_id=portfolio_id, snapshots=count)
+        return jsonify({
+            'message': f'Seeded {count} realistic NAV snapshots',
+            'start_date': seed_params['start_date'],
+            'end_date': seed_params['end_date'],
+            'snapshots': count
+        }), 201
+
+    except Exception as e:
+        current_app.logger.exception('seed nav history failed')
+        return jsonify({'error': f'Seeding failed: {str(e)}'}), 500

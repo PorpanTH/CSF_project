@@ -107,6 +107,38 @@ def calculate_accumulated_pnl(snapshots: List[PortfolioNavHistory]) -> List[Dict
     return accumulated_pnl_data
 
 
+def calculate_daily_pnl(snapshots: List[PortfolioNavHistory]) -> List[Dict]:
+    """Calculate daily P/L deltas from NAV history snapshots.
+
+    Args:
+        snapshots: List of PortfolioNavHistory records
+
+    Returns:
+        List of dicts: [{date: "YYYY-MM-DD", daily: value}, ...]
+    """
+    if not snapshots:
+        return []
+
+    daily_pnl_data = []
+    previous_nav = None
+
+    for snapshot in snapshots:
+        if previous_nav is None:
+            # First day: daily delta = 0
+            daily_delta = 0.0
+        else:
+            daily_delta = snapshot.nav - previous_nav
+
+        daily_pnl_data.append({
+            'date': snapshot.snapshot_date.isoformat(),
+            'daily': round(daily_delta, 2)
+        })
+
+        previous_nav = snapshot.nav
+
+    return daily_pnl_data
+
+
 def filter_by_range(snapshots: List[PortfolioNavHistory], range_param: str) -> List[PortfolioNavHistory]:
     """Filter snapshots by range parameter.
 
@@ -123,8 +155,8 @@ def filter_by_range(snapshots: List[PortfolioNavHistory], range_param: str) -> L
     today = datetime.now().date()
 
     if range_param == 'daily':
-        # Return only today's data (last snapshot)
-        return snapshots[-1:] if snapshots else []
+        # Return all snapshots for daily view (will show daily deltas)
+        return snapshots
 
     elif range_param == 'weekly':
         cutoff_date = today - timedelta(days=7)
