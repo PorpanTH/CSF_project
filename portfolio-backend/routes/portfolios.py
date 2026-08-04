@@ -118,14 +118,20 @@ def add_portfolio_item(portfolio_id):
     if not all(field in data for field in required):
         return jsonify({'error': f'Missing required fields: {", ".join(required)}'}), 400
 
+    purchase_price = data.get('purchasePrice', data.get('purchase_price'))
+    purchase_date = data.get('purchaseDate', data.get('purchase_date'))
+    current_price = data.get('currentPrice', data.get('current_price', purchase_price))
+
     item = PortfolioItem(
         portfolio_id=portfolio_id,
-        asset_class=data['assetClass'],
-        item_type=data['itemType'],
+        asset_class=data.get('assetClass', data.get('asset_class')),
+        item_type=data.get('itemType', data.get('item_type')),
         ticker=data['ticker'],
         quantity=data['quantity'],
-        purchase_price=data['purchasePrice'],
-        purchase_date=data['purchaseDate'],
+        purchase_price=purchase_price,
+        purchase_date=purchase_date,
+        current_price=current_price,
+        name=data.get('name', ''),
         sector=data.get('sector', ''),
         region=data.get('region', '')
     )
@@ -162,8 +168,18 @@ def update_portfolio_item(portfolio_id, item_id):
         item.quantity = data['quantity']
     if 'purchasePrice' in data:
         item.purchase_price = data['purchasePrice']
+    elif 'purchase_price' in data:
+        item.purchase_price = data['purchase_price']
     if 'purchaseDate' in data:
         item.purchase_date = data['purchaseDate']
+    elif 'purchase_date' in data:
+        item.purchase_date = data['purchase_date']
+    if 'currentPrice' in data:
+        item.current_price = data['currentPrice']
+    elif 'current_price' in data:
+        item.current_price = data['current_price']
+    if 'name' in data:
+        item.name = data['name']
     if 'sector' in data:
         item.sector = data['sector']
     if 'region' in data:

@@ -12,10 +12,10 @@ export const AddItemForm = ({ onSubmit, onCancel, initialData }: AddItemFormProp
   const [formData, setFormData] = useState({
     itemType: initialData?.itemType || 'stock' as const,
     ticker: initialData?.ticker || '',
-    quantity: initialData?.quantity || 0,
-    purchasePrice: initialData?.purchasePrice || 0,
+    quantity: initialData?.quantity?.toString() || '',
+    purchasePrice: initialData?.purchasePrice?.toString() || '',
     purchaseDate: initialData?.purchaseDate || new Date().toISOString().split('T')[0],
-    currentPrice: initialData?.currentPrice || 0,
+    currentPrice: initialData?.currentPrice?.toString() || '',
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -29,15 +29,18 @@ export const AddItemForm = ({ onSubmit, onCancel, initialData }: AddItemFormProp
       newErrors.ticker = 'Ticker should contain only uppercase letters'
     }
 
-    if (formData.quantity <= 0) {
+    const quantity = parseFloat(formData.quantity as any)
+    if (!formData.quantity || quantity <= 0) {
       newErrors.quantity = 'Quantity must be greater than 0'
     }
 
-    if (formData.purchasePrice <= 0) {
+    const purchasePrice = parseFloat(formData.purchasePrice as any)
+    if (!formData.purchasePrice || purchasePrice <= 0) {
       newErrors.purchasePrice = 'Purchase price must be greater than 0'
     }
 
-    if (formData.currentPrice <= 0) {
+    const currentPrice = parseFloat(formData.currentPrice as any)
+    if (!formData.currentPrice || currentPrice <= 0) {
       newErrors.currentPrice = 'Current price must be greater than 0'
     }
 
@@ -51,18 +54,29 @@ export const AddItemForm = ({ onSubmit, onCancel, initialData }: AddItemFormProp
       onSubmit({
         ...formData,
         ticker: formData.ticker.toUpperCase(),
+        quantity: parseFloat(formData.quantity as any),
+        purchasePrice: parseFloat(formData.purchasePrice as any),
+        currentPrice: parseFloat(formData.currentPrice as any),
         sector: 'Unclassified',
         region: 'Unclassified',
-        priceHistory: [formData.currentPrice],
+        priceHistory: [parseFloat(formData.currentPrice as any)],
       })
     }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
+
+    // For numeric fields, only allow digits and decimal point
+    if ((name === 'quantity' || name === 'purchasePrice' || name === 'currentPrice') && value !== '') {
+      if (!/^\d*\.?\d*$/.test(value)) {
+        return // Ignore invalid input
+      }
+    }
+
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'itemType' ? value : name.includes('Price') || name === 'quantity' ? parseFloat(value) || 0 : value
+      [name]: value
     }))
   }
 
@@ -120,11 +134,12 @@ export const AddItemForm = ({ onSubmit, onCancel, initialData }: AddItemFormProp
                 Quantity
               </label>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 name="quantity"
                 value={formData.quantity}
                 onChange={handleChange}
-                step="0.01"
+                placeholder="0"
                 className="input-field"
               />
               {errors.quantity && <p className="text-red-600 text-sm mt-1">{errors.quantity}</p>}
@@ -135,11 +150,12 @@ export const AddItemForm = ({ onSubmit, onCancel, initialData }: AddItemFormProp
                 Purchase Price
               </label>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 name="purchasePrice"
                 value={formData.purchasePrice}
                 onChange={handleChange}
-                step="0.01"
+                placeholder="0.00"
                 className="input-field"
               />
               {errors.purchasePrice && <p className="text-red-600 text-sm mt-1">{errors.purchasePrice}</p>}
@@ -151,11 +167,12 @@ export const AddItemForm = ({ onSubmit, onCancel, initialData }: AddItemFormProp
               Current Price
             </label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               name="currentPrice"
               value={formData.currentPrice}
               onChange={handleChange}
-              step="0.01"
+              placeholder="0.00"
               className="input-field"
             />
             {errors.currentPrice && <p className="text-red-600 text-sm mt-1">{errors.currentPrice}</p>}

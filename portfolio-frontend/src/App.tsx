@@ -29,6 +29,22 @@ interface ProductOption {
 
 const uid = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
+const calculateWeightedAveragePurchasePrice = (
+  currentPurchasePrice: number,
+  currentQuantity: number,
+  newPurchasePrice: number,
+  newQuantity: number,
+) => {
+  const totalCost = (currentPurchasePrice * currentQuantity) + (newPurchasePrice * newQuantity)
+  const totalQuantity = currentQuantity + newQuantity
+
+  if (totalQuantity <= 0) {
+    return newPurchasePrice
+  }
+
+  return Number((totalCost / totalQuantity).toFixed(2))
+}
+
 const MOCK_NEWS: Record<string, { title: string; source: string; summary: string }[]> = {
   AAPL: [
     {
@@ -251,9 +267,14 @@ export default function App() {
       let nextItems = items.map(i => i.itemType === 'cash' ? { ...i, quantity: Number((i.quantity - totalCost).toFixed(2)) } : i)
       if (existing) {
         const newQty = existing.quantity + quantity
-        const newAvgCost = (existing.purchasePrice * existing.quantity + price * quantity) / newQty
+        const newAvgCost = calculateWeightedAveragePurchasePrice(
+          existing.purchasePrice,
+          existing.quantity,
+          price,
+          quantity,
+        )
         nextItems = nextItems.map(i => i.id === existing.id
-          ? { ...i, quantity: newQty, purchasePrice: Number(newAvgCost.toFixed(2)), currentPrice: price, updatedAt: timestamp, priceHistory: [...i.priceHistory.slice(-29), price] }
+          ? { ...i, quantity: newQty, purchasePrice: newAvgCost, currentPrice: price, updatedAt: timestamp, priceHistory: [...i.priceHistory.slice(-29), price] }
           : i
         )
       } else {
