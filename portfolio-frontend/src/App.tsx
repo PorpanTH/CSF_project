@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { ArrowUpRight, PieChart, Wallet } from 'lucide-react'
 import { PnLOverview } from './components/PnLOverview'
 import { AccumulatedPnLChart } from './components/AccumulatedPnLChart'
-import { BuyFlow } from './components/BuyFlow'
-import { HoldingsFluctuationList } from './components/HoldingsFluctuationList'
+import { AddFlow } from './components/AddFlow.tsx'
+import { RemoveFlow } from './components/RemoveFlow.tsx'
 import { TradeModal } from './components/TradeModal'
 import { Toast } from './components/Toast'
 import { portfolioAPI } from './services/api'
@@ -372,9 +372,8 @@ export default function App() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 mb-8">
-          <BuyFlow marketCatalog={marketCatalog} handleExplorerBuy={handleExplorerBuy} />
-
-          <HoldingsFluctuationList holdings={holdings} onSell={openSellModal} />
+          <AddFlow marketCatalog={marketCatalog} handleExplorerBuy={handleExplorerBuy} />
+          <RemoveFlow holdings={holdings} handleSell={openSellModal} />
         </div>
       </main>
 
