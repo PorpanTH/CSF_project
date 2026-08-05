@@ -1,6 +1,9 @@
 import { LineChart, Line, ResponsiveContainer } from 'recharts'
 import { HoldingFluctuation } from '../types'
-import { STATUS } from '../theme/colors'
+import { STATUS, BRAND } from '../theme/colors'
+import { Search, ArrowUpDown } from 'lucide-react'
+import { useState } from 'react'
+
 
 interface HoldingsFluctuationListProps {
   holdings: HoldingFluctuation[]
@@ -18,6 +21,13 @@ const Sparkline = ({ history, color }: { history: number[]; color: string }) => 
 )
 
 export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuationListProps) => {
+  const [query, setQuery] = useState('')
+  const filteredHoldings = holdings.filter((holding) => {
+    const q = query.trim().toLowerCase()
+    if (!q) return true
+    return holding.ticker.toLowerCase().includes(q) || (holding.name || '').toLowerCase().includes(q)
+  })
+  
   return (
     <div className="card border border-slate-200 flex flex-col">
       <div className="flex items-start justify-between mb-5">
@@ -25,12 +35,22 @@ export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuatio
           <h3 className="text-lg font-bold text-gray-900">Portfolio Holdings</h3>
           <p className="text-sm text-gray-500 mt-1">Dashboard for monitoring holdings and preparing exits</p>
         </div>
-        <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
+        <div className="rounded-full bg-slate-100 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 whitespace-nowrap">
           {holdings.length} holdings
         </div>
       </div>
+      <div className="relative mb-4">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Search by ticker or name..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="input-field pl-9 w-full"
+        />
+      </div>
       <div className="space-y-3 overflow-y-auto flex-1 pr-2" style={{ maxHeight: '500px' }}>
-        {holdings.map(holding => {
+        {filteredHoldings.map(holding => {
           const positive = holding.changePercent >= 0
           const color = positive ? STATUS.good : STATUS.critical
           return (
@@ -58,6 +78,7 @@ export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuatio
                   <button
                     onClick={() => onSell(holding)}
                     className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-700"
+                    style={{ backgroundColor: BRAND[700] }}
                   >
                     Remove
                   </button>
@@ -66,7 +87,7 @@ export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuatio
             </div>
           )
         })}
-        {holdings.length === 0 && (
+        {filteredHoldings.length === 0 && (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-gray-500">
             No holdings are currently being monitored for exit planning.
           </div>
