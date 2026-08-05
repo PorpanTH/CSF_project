@@ -4,7 +4,7 @@ import { PnLOverview } from './components/PnLOverview'
 import { AssetAllocationChart } from './components/AssetAllocationChart'
 import { AccumulatedPnLChart } from './components/AccumulatedPnLChart'
 import { BuyFlow } from './components/BuyFlow'
-import { HoldingsFluctuationList } from './components/HoldingsFluctuationList'
+import { RemoveFlow } from './components/RemoveFlow'
 import { TradeModal } from './components/TradeModal'
 import { SellTransactionModal } from './components/SellTransactionModal'
 import { TransactionHistoryScreen } from './components/TransactionHistoryScreen'
@@ -78,7 +78,6 @@ export default function App() {
     sector?: string
     region?: string
   } | null>(null)
-  const [selectedProduct, setSelectedProduct] = useState<{ ticker: string; equity: MarketEquity; product: ProductOption } | null>(null)
   const [activeSale, setActiveSale] = useState<HoldingFluctuation | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
 
@@ -127,6 +126,7 @@ export default function App() {
       const payload = {
         itemType: item.itemType,
         ticker: item.ticker,
+        name: item.name,
         quantity: item.quantity,
         purchasePrice: item.purchasePrice,
         purchaseDate: item.purchaseDate,
@@ -187,6 +187,7 @@ export default function App() {
       const totalCost = quantity * buyPrice
 
       const itemType = activeTrade.itemType ?? 'stock'
+      const itemName = activeTrade.name ?? ticker
       const existing = findMatchingHolding(items, ticker, itemType)
       let nextItems = items.map(i => i.itemType === 'cash' ? { ...i, quantity: Number((i.quantity - totalCost).toFixed(2)) } : i)
       if (existing) {
@@ -207,8 +208,10 @@ export default function App() {
           {
             id: uid('item'),
             portfolioId: '1',
+            assetClass: itemType,
             itemType,
             ticker,
+            name: itemName,
             quantity,
             purchasePrice: buyPrice,
             purchaseDate: buyDate,
@@ -420,8 +423,7 @@ export default function App() {
 
         <div className="grid gap-6 md:grid-cols-2 mb-8">
           <BuyFlow marketCatalog={marketCatalog} handleExplorerBuy={handleExplorerBuy} />
-
-          <HoldingsFluctuationList holdings={holdings} onSell={openSellModal} />
+          <RemoveFlow holdings={holdings} handleSell={openSellModal} />
         </div>
 
         <div className="mb-8">
@@ -447,26 +449,6 @@ export default function App() {
           holding={activeSale}
           onConfirm={handleRecordSale}
           onClose={() => setActiveSale(null)}
-        />
-      )}
-
-      {selectedProduct && (
-        <ProductDetailModal
-          ticker={selectedProduct.equity.ticker}
-          name={selectedProduct.equity.name}
-          sector={selectedProduct.equity.sector}
-          region={selectedProduct.equity.region}
-          price={selectedProduct.equity.price}
-          changePercent={selectedProduct.equity.changePercent}
-          priceHistory={selectedProduct.equity.priceHistory.length > 0 ? selectedProduct.equity.priceHistory : Array(30).fill(selectedProduct.equity.price)}
-          news={(MOCK_NEWS[selectedProduct.equity.ticker] || []).map((n, i) => ({
-            id: `news-${i}`,
-            title: n.title,
-            source: n.source,
-            date: new Date(Date.now() - i * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-            summary: n.summary,
-          }))}
-          onClose={() => setSelectedProduct(null)}
         />
       )}
 
