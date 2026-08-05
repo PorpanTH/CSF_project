@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app
 import yfinance as yf
+from concurrent.futures import ThreadPoolExecutor
 from database.db import db
 from models.portfolio import Portfolio, PortfolioItem, TransactionHistory
 from routes.auth import get_default_user
@@ -23,16 +24,25 @@ def _log_action(action, **details):
     current_app.logger.info('%s %s', action, details)
 
 
+def _fetch_ticker_price(ticker):
+    try:
+        history = yf.Ticker(ticker).history(period='1d')
+        if not history.empty:
+            return ticker, float(history['Close'].iloc[-1])
+    except Exception:
+        pass
+    return ticker, None
+
+
 def _get_live_prices(items):
-    live_prices = {}
-    for ticker in {item.ticker.strip().upper() for item in items if item.ticker}:
-        try:
-            history = yf.Ticker(ticker).history(period='1d')
-            if not history.empty:
-                live_prices[ticker] = float(history['Close'].iloc[-1])
-        except Exception:
-            continue
-    return live_prices
+    tickers = {item.ticker.strip().upper() for item in items if item.ticker}
+    if not tickers:
+        return {}
+
+    with ThreadPoolExecutor(max_workers=min(10, len(tickers))) as executor:
+        results = executor.map(_fetch_ticker_price, tickers)
+
+    return {ticker: price for ticker, price in results if price is not None}
 
 @portfolio_bp.route('/portfolios', methods=['GET'])
 @portfolio_bp.route('/portfolios/', methods=['GET'])
