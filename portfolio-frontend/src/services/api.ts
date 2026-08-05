@@ -70,6 +70,11 @@ export const portfolioAPI = {
     const response = await apiClient.get(`/portfolios/${portfolioId}/transactions`, { params: filters })
     return response.data
   },
+
+  getNavHistory: async (portfolioId: string): Promise<{ date: string; nav: number }[]> => {
+    const response = await apiClient.get(`/portfolios/${portfolioId}/nav-history`)
+    return response.data
+  },
 }
 
 export const marketAPI = {
