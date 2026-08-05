@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowUpRight, PieChart, Wallet } from 'lucide-react'
 import { PnLOverview } from './components/PnLOverview'
+import { AssetAllocationChart } from './components/AssetAllocationChart'
 import { AccumulatedPnLChart } from './components/AccumulatedPnLChart'
 import { HoldingsFluctuationList } from './components/HoldingsFluctuationList'
 import { MarketExplorer } from './components/MarketExplorer'
@@ -370,6 +371,16 @@ export default function App() {
           <PnLOverview total={pnl.total} breakdown={pnl.byAssetClass} />
           {portfolioId && <AccumulatedPnLChart portfolioId={portfolioId!} endValue={pnl.total} />}
         </div>
+
+        {portfolioId && portfolioMetrics?.nav && (
+          <div className="mb-8">
+            <AssetAllocationChart
+              navByAssetClass={portfolioMetrics.nav.byAssetClass}
+              items={items}
+              totalValue={totalPortfolioValue}
+            />
+          </div>
+        )}
 
         <div className="grid gap-6 md:grid-cols-2 mb-8">
           <div className="card border border-slate-200 flex flex-col">

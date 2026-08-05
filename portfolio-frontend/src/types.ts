@@ -1,6 +1,7 @@
 export interface PortfolioItem {
   id: string
   portfolioId: string
+  assetClass: string
   itemType: 'stock' | 'bond' | 'cash' | 'etf' | 'other'
   ticker: string
   quantity: number
@@ -42,6 +43,9 @@ export interface PortfolioMetrics {
   percentageReturn: number
   dayChange: number
   dayChangePercent: number
+  nav?: {
+    byAssetClass: NavByAssetClass[]
+  }
   pnl?: {
     total: number
     byAssetClass: PnLByAssetClass[]
@@ -59,6 +63,11 @@ export interface BreakdownSlice {
   name: string
   value: number
   percentage: number
+}
+
+export interface NavByAssetClass {
+  assetClass: string
+  value: number
 }
 
 export interface PnLByAssetClass {
