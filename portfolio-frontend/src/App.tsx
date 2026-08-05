@@ -122,6 +122,7 @@ export default function App() {
       const payload = {
         itemType: item.itemType,
         ticker: item.ticker,
+        name: item.name,
         quantity: item.quantity,
         purchasePrice: item.purchasePrice,
         purchaseDate: item.purchaseDate,
@@ -202,6 +203,7 @@ export default function App() {
             portfolioId: '1',
             itemType,
             ticker,
+            name: activeTrade.name ?? ticker,
             quantity,
             purchasePrice: price,
             purchaseDate: new Date().toISOString().slice(0, 10),
@@ -290,7 +292,7 @@ export default function App() {
       ticker: item.ticker,
       price: item.currentPrice,
       maxQuantity: item.quantity,
-      name: item.ticker,
+      name: item.name,
     })
   }
 
