@@ -65,24 +65,23 @@ export const MarketExplorer = ({ onBuy }: MarketExplorerProps) => {
     }
   }
 
-  // Initial load: fetch default products
-  useEffect(() => {
-    fetchAndEnrich('', 'all')
-  }, [])
-
-  // Debounced search when user types
+  // Fetch default or filtered products whenever query or category changes
   useEffect(() => {
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current)
     }
 
-    if (!query.trim()) {
-      return
-    }
+    setLoading(true)
 
     debounceTimerRef.current = setTimeout(async () => {
-      await fetchAndEnrich(query, category)
+      await fetchAndEnrich(query.trim(), category)
     }, 300)
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+    }
   }, [query, category])
 
   const sorted = sortKey === 'relevance'
