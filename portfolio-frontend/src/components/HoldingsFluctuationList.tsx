@@ -9,12 +9,21 @@ interface HoldingsFluctuationListProps {
 }
 
 type SortKey = 'ticker' | 'quantity' | 'currentPrice' | 'unrealizedPnl' | 'changePercent'
+type ProductCategory = 'stock' | 'bond' | 'etf' | 'other' | 'all'
+
+const PRODUCT_CATEGORIES: { id: ProductCategory; label: string }[] = [
+    { id: 'all', label: 'All Products' },
+    { id: 'stock', label: 'Stocks' },
+    { id: 'bond', label: 'Bonds' },
+    { id: 'etf', label: 'ETFs & ETPs' },
+    { id: 'other', label: 'Alternatives' },
+  ]
 
 export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuationListProps) => {
   const [query, setQuery] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('ticker')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
-
+  const [category, setCategory] = useState<ProductCategory>('all')
   const filtered = useMemo(() => {
     const q = query.toLowerCase()
 
@@ -80,6 +89,22 @@ export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuatio
           {holdings.length} holdings
         </div>
       </div>
+
+      <div className="mb-4 flex flex-wrap gap-2">
+              <span className="text-xs text-gray-500 self-center">Product type:</span>
+              {PRODUCT_CATEGORIES.map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => setCategory(cat.id)}
+                  className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
+                    category === cat.id ? 'border-transparent text-white' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                  }`}
+                  style={category === cat.id ? { backgroundColor: BRAND[700] } : undefined}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
 
       <div className="overflow-x-auto">
         <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
