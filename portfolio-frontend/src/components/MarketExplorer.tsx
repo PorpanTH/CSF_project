@@ -68,19 +68,16 @@ export const MarketExplorer = ({ equities, onBuy }: MarketExplorerProps) => {
   }
 
   return (
-    <div className="card">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-        <h3 className="text-lg font-bold text-gray-900">Search Equities</h3>
-        <div className="relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search by ticker or name..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="input-field pl-9 w-full sm:w-72"
-          />
-        </div>
+    <div>
+      <div className="relative mb-4">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Search by ticker or name..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="input-field pl-9 w-full"
+        />
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
@@ -116,13 +113,12 @@ export const MarketExplorer = ({ equities, onBuy }: MarketExplorerProps) => {
         ))}
       </div>
 
-      <div className="overflow-x-auto -mx-2">
+      <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-gray-500 border-b border-gray-200">
               <th className="px-2 pb-2 font-medium">Ticker</th>
               <th className="px-2 pb-2 font-medium">Sector</th>
-              <th className="px-2 pb-2 font-medium">Region</th>
               <th className="px-2 pb-2 font-medium text-right">Price</th>
               <th className="px-2 pb-2 font-medium text-right">% Change</th>
               <th className="px-2 pb-2 font-medium text-right"></th>
@@ -138,7 +134,6 @@ export const MarketExplorer = ({ equities, onBuy }: MarketExplorerProps) => {
                     <p className="text-xs text-gray-500">{eq.name}</p>
                   </td>
                   <td className="px-2 py-2.5 text-gray-700">{eq.sector}</td>
-                  <td className="px-2 py-2.5 text-gray-700">{eq.region}</td>
                   <td className="px-2 py-2.5 text-right font-medium text-gray-900">
                     ${eq.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </td>
@@ -148,10 +143,10 @@ export const MarketExplorer = ({ equities, onBuy }: MarketExplorerProps) => {
                   <td className="px-2 py-2.5 text-right flex gap-2 justify-end">
                     <button
                       onClick={() => onBuy(eq)}
-                      className="px-3 py-1 text-xs font-medium text-white rounded-md"
+                      className="px-3 py-1.5 text-xs font-medium text-white rounded-md"
                       style={{ backgroundColor: BRAND[700] }}
                     >
-                      Buy
+                      Add
                     </button>
                   </td>
                 </tr>
