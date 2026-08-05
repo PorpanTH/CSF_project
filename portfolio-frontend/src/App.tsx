@@ -8,7 +8,6 @@ import { HoldingsFluctuationList } from './components/HoldingsFluctuationList'
 import { TradeModal } from './components/TradeModal'
 import { SellTransactionModal } from './components/SellTransactionModal'
 import { TransactionHistoryScreen } from './components/TransactionHistoryScreen'
-import { ProductDetailModal } from './components/ProductDetailModal'
 import { Toast } from './components/Toast'
 import { portfolioAPI } from './services/api'
 import {
