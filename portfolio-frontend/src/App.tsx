@@ -4,7 +4,6 @@ import {
   LayoutDashboard,
   ArrowLeftRight,
   History,
-  PieChart,
   Wallet,
   ShieldCheck,
 } from 'lucide-react'
@@ -57,7 +56,8 @@ export default function App() {
   const [portfolioId, setPortfolioId] = useState<string | null>(null)
   const [items, setItems] = useState<PortfolioItem[]>([])
   const [portfolioMetrics, setPortfolioMetrics] = useState<PortfolioMetrics | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0)
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]['id']>('dashboard')
   const [activeTrade, setActiveTrade] = useState<{
     mode: 'buy' | 'sell'
@@ -74,12 +74,14 @@ export default function App() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
 
   useEffect(() => {
-    void loadPortfolio()
+    void loadPortfolio({ showGlobalLoader: true })
   }, [])
 
-  const loadPortfolio = async () => {
+  const loadPortfolio = async ({ showGlobalLoader = false }: { showGlobalLoader?: boolean } = {}) => {
     try {
-      setIsLoading(true)
+      if (showGlobalLoader) {
+        setIsInitialLoading(true)
+      }
       const portfolios = await portfolioAPI.getAll()
       const portfolio = portfolios.find(item => item.id === '1') ?? portfolios[0]
 
@@ -93,7 +95,9 @@ export default function App() {
     } catch (error) {
       setToast({ message: 'Failed to load portfolio from the backend.', type: 'error' })
     } finally {
-      setIsLoading(false)
+      if (showGlobalLoader) {
+        setIsInitialLoading(false)
+      }
     }
   }
 
@@ -220,6 +224,7 @@ export default function App() {
           itemType,
         })
         await loadPortfolio()
+        setHistoryRefreshKey((current) => current + 1)
         setToast({ message: `Recorded buy for ${quantity} ${ticker}.`, type: 'success' })
       } catch (error) {
         setToast({ message: 'Failed to record the buy transaction.', type: 'error' })
@@ -257,6 +262,7 @@ export default function App() {
       try {
         await commitItems(nextItems)
         await loadPortfolio()
+        setHistoryRefreshKey((current) => current + 1)
         setToast({ message: `Placed sell order for ${quantity} ${ticker}.`, type: 'success' })
       } catch (error) {
         setToast({ message: 'Failed to persist sell order to the backend.', type: 'error' })
@@ -296,6 +302,7 @@ export default function App() {
         quantity,
       })
       await loadPortfolio()
+      setHistoryRefreshKey((current) => current + 1)
       setToast({ message: `Recorded sale for ${quantity} ${item.ticker}.`, type: 'success' })
     } catch (error) {
       setToast({ message: 'Failed to record the sale transaction.', type: 'error' })
@@ -318,7 +325,7 @@ export default function App() {
     })
   }
 
-  if (isLoading) {
+  if (isInitialLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#f8f5f0] text-zinc-900">
         <div className="rounded-[28px] border border-black/10 bg-white px-8 py-5 shadow-[0_18px_48px_rgba(0,0,0,0.08)]">
@@ -421,7 +428,7 @@ export default function App() {
 
             {activeTab === 'history' && (
               <div>
-                <TransactionHistoryScreen portfolioId={portfolioId} />
+                <TransactionHistoryScreen portfolioId={portfolioId} refreshKey={historyRefreshKey} />
               </div>
             )}
           </div>

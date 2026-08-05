@@ -6,6 +6,7 @@ import { STATUS, BRAND } from '../theme/colors'
 
 interface TransactionHistoryScreenProps {
   portfolioId: string | null
+  refreshKey?: number
 }
 
 const TRANSACTIONS_PER_PAGE = 30
@@ -20,7 +21,7 @@ const escapeCsvField = (value: string | number) => {
   return stringValue
 }
 
-export const TransactionHistoryScreen = ({ portfolioId }: TransactionHistoryScreenProps) => {
+export const TransactionHistoryScreen = ({ portfolioId, refreshKey = 0 }: TransactionHistoryScreenProps) => {
   const [transactions, setTransactions] = useState<TransactionHistoryRecord[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -48,7 +49,7 @@ export const TransactionHistoryScreen = ({ portfolioId }: TransactionHistoryScre
     }
 
     void loadHistory()
-  }, [portfolioId, typeFilter])
+  }, [portfolioId, typeFilter, refreshKey])
 
   const totalPages = Math.max(1, Math.ceil(transactions.length / TRANSACTIONS_PER_PAGE))
   const safePage = Math.min(currentPage, totalPages)
