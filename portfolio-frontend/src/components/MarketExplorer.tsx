@@ -82,7 +82,7 @@ export const MarketExplorer = ({ equities, onBuy }: MarketExplorerProps) => {
             className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
               category === cat.id ? 'border-transparent text-white' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
             }`}
-            style={category === cat.id ? { backgroundColor: BRAND[700] } : undefined}
+            style={category === cat.id ? { backgroundColor: STATUS['good'] } : undefined}
           >
             {cat.label}
           </button>
@@ -165,11 +165,11 @@ export const MarketExplorer = ({ equities, onBuy }: MarketExplorerProps) => {
                     <td className="px-2 py-2.5 font-medium" style={{ color: positive ? STATUS.goodText : STATUS.critical }}>
                       {positive ? '+' : ''}{eq.changePercent.toFixed(2)}%
                     </td>
-                    <td className="px-2 py-2.5 flex gap-2 justify-end">
+                    <td className="px-2 py-2.5 flex items-center justify-center">
                       <button
                         onClick={() => onBuy(eq)}
-                        className="px-3 py-1.5 text-xs font-medium text-white rounded-md"
-                        style={{ backgroundColor: BRAND[700] }}
+                        className="px-3 py-1.5 text-xs font-medium text-white rounded-md items-center justify-center"
+                        style={{ backgroundColor: STATUS['good'] }}
                       >
                         Add
                       </button>

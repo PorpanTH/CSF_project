@@ -59,7 +59,7 @@ export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuatio
                     onClick={() => onSell(holding)}
                     className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-700"
                   >
-                    Sell
+                    Remove
                   </button>
                 </div>
               </div>
