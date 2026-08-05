@@ -4,6 +4,7 @@ export interface PortfolioItem {
   assetClass: string
   itemType: 'stock' | 'bond' | 'cash' | 'etf' | 'other'
   ticker: string
+  name?: string
   quantity: number
   purchasePrice: number
   purchaseDate: string
@@ -85,6 +86,7 @@ export interface PnLSeriesPoint {
 export interface HoldingFluctuation {
   ticker: string
   itemType: 'stock' | 'bond' | 'cash' | 'etf' | 'other'
+  name: string
   quantity: number
   purchasePrice: number
   currentPrice: number
