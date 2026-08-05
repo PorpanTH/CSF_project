@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, current_app
 import yfinance as yf
 from database.db import db
-from models.portfolio import Portfolio, PortfolioItem
+from models.portfolio import Portfolio, PortfolioItem, TransactionHistory
 from routes.auth import get_default_user
 from services.nav_history import (
     record_nav_snapshot,
@@ -216,6 +216,198 @@ def delete_portfolio_item(portfolio_id, item_id):
         current_app.logger.exception('failed to delete portfolio item')
         db.session.rollback()
         return jsonify({'error': 'Failed to delete item'}), 500
+
+
+@portfolio_bp.route('/portfolios/<int:portfolio_id>/transactions/sell', methods=['POST'])
+def record_sell_transaction(portfolio_id):
+    _log_action('record sell transaction request', portfolio_id=portfolio_id)
+
+    portfolio = Portfolio.query.filter_by(id=portfolio_id, user_id=USER_ID).first()
+    if not portfolio:
+        return jsonify({'error': 'Portfolio not found'}), 404
+
+    data = request.get_json() or {}
+    ticker = (data.get('ticker') or '').strip().upper()
+    date_value = data.get('date') or data.get('saleDate') or data.get('sale_date')
+    price_value = data.get('price', data.get('soldPrice', data.get('salePrice')))
+    quantity_value = data.get('quantity')
+
+    if not ticker or not date_value or price_value is None or quantity_value is None:
+        return jsonify({'error': 'ticker, date, price, and quantity are required'}), 400
+
+    try:
+        transaction_date = datetime.strptime(date_value, '%Y-%m-%d').date()
+    except ValueError:
+        return jsonify({'error': 'date must be in YYYY-MM-DD format'}), 400
+
+    try:
+        price = float(price_value)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'price must be a number'}), 400
+
+    if price <= 0:
+        return jsonify({'error': 'price must be greater than 0'}), 400
+
+    try:
+        quantity = float(quantity_value)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'quantity must be a number'}), 400
+
+    if quantity <= 0:
+        return jsonify({'error': 'quantity must be greater than 0'}), 400
+
+    item = PortfolioItem.query.filter_by(portfolio_id=portfolio_id, ticker=ticker).filter(PortfolioItem.item_type != 'cash').first()
+    if not item:
+        return jsonify({'error': 'Item not found'}), 404
+
+    if quantity > item.quantity:
+        return jsonify({'error': 'quantity exceeds holding size'}), 400
+
+    proceeds = round(quantity * price, 2)
+    cost_basis = round(quantity * item.purchase_price, 2)
+    realized_pnl = round(proceeds - cost_basis, 2)
+
+    try:
+        cash_item = PortfolioItem.query.filter_by(portfolio_id=portfolio_id, item_type='cash').first()
+        if cash_item:
+            cash_item.quantity = round(cash_item.quantity + proceeds, 2)
+            cash_item.updated_at = datetime.utcnow()
+
+        remaining_quantity = round(item.quantity - quantity, 10)
+        if remaining_quantity <= 0:
+            db.session.delete(item)
+        else:
+            item.quantity = remaining_quantity
+            item.updated_at = datetime.utcnow()
+
+        transaction = TransactionHistory(
+            portfolio_id=portfolio_id,
+            portfolio_item_id=item.id,
+            transaction_type='sell',
+            ticker=item.ticker,
+            quantity=quantity,
+            price=price,
+            date=transaction_date,
+            cost_basis=cost_basis,
+            proceeds=proceeds,
+            realized_pnl=realized_pnl,
+        )
+
+        db.session.add(transaction)
+        db.session.commit()
+
+        _log_action(
+            'sell transaction recorded',
+            portfolio_id=portfolio_id,
+            ticker=item.ticker,
+            quantity=quantity,
+            price=price,
+            date=str(transaction_date),
+        )
+
+        return jsonify(transaction.to_dict()), 201
+    except Exception:
+        current_app.logger.exception('failed to record sell transaction')
+        db.session.rollback()
+        return jsonify({'error': 'Failed to record sell transaction'}), 500
+
+
+@portfolio_bp.route('/portfolios/<int:portfolio_id>/transactions/buy', methods=['POST'])
+def record_buy_transaction(portfolio_id):
+    _log_action('record buy transaction request', portfolio_id=portfolio_id)
+
+    portfolio = Portfolio.query.filter_by(id=portfolio_id, user_id=USER_ID).first()
+    if not portfolio:
+        return jsonify({'error': 'Portfolio not found'}), 404
+
+    data = request.get_json() or {}
+    ticker = (data.get('ticker') or '').strip().upper()
+    item_type_value = (data.get('itemType') or data.get('item_type') or '').strip().lower()
+    date_value = data.get('date')
+    price_value = data.get('price')
+    quantity_value = data.get('quantity')
+
+    if not ticker or not date_value or price_value is None or quantity_value is None:
+        return jsonify({'error': 'ticker, date, price, and quantity are required'}), 400
+
+    try:
+        transaction_date = datetime.strptime(date_value, '%Y-%m-%d').date()
+    except ValueError:
+        return jsonify({'error': 'date must be in YYYY-MM-DD format'}), 400
+
+    try:
+        price = float(price_value)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'price must be a number'}), 400
+
+    if price <= 0:
+        return jsonify({'error': 'price must be greater than 0'}), 400
+
+    try:
+        quantity = float(quantity_value)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'quantity must be a number'}), 400
+
+    if quantity <= 0:
+        return jsonify({'error': 'quantity must be greater than 0'}), 400
+
+    cost_basis = round(quantity * price, 2)
+
+    item_query = PortfolioItem.query.filter_by(portfolio_id=portfolio_id, ticker=ticker).filter(PortfolioItem.item_type != 'cash')
+    if item_type_value:
+        item_query = item_query.filter(PortfolioItem.item_type == item_type_value)
+    linked_item = item_query.order_by(PortfolioItem.updated_at.desc(), PortfolioItem.id.desc()).first()
+
+    try:
+        transaction = TransactionHistory(
+            portfolio_id=portfolio_id,
+            portfolio_item_id=linked_item.id if linked_item else None,
+            transaction_type='buy',
+            ticker=ticker,
+            quantity=quantity,
+            price=price,
+            date=transaction_date,
+            cost_basis=cost_basis,
+            proceeds=0,
+            realized_pnl=0,
+        )
+
+        db.session.add(transaction)
+        db.session.commit()
+
+        _log_action(
+            'buy transaction recorded',
+            portfolio_id=portfolio_id,
+            ticker=ticker,
+            quantity=quantity,
+            price=price,
+            date=str(transaction_date),
+            portfolio_item_id=transaction.portfolio_item_id,
+        )
+
+        return jsonify(transaction.to_dict()), 201
+    except Exception:
+        current_app.logger.exception('failed to record buy transaction')
+        db.session.rollback()
+        return jsonify({'error': 'Failed to record buy transaction'}), 500
+
+
+@portfolio_bp.route('/portfolios/<int:portfolio_id>/transactions', methods=['GET'])
+def get_transaction_history(portfolio_id):
+    _log_action('get transaction history', portfolio_id=portfolio_id)
+
+    portfolio = Portfolio.query.filter_by(id=portfolio_id, user_id=USER_ID).first()
+    if not portfolio:
+        return jsonify({'error': 'Portfolio not found'}), 404
+
+    transaction_type = (request.args.get('type') or '').strip().lower()
+    query = TransactionHistory.query.filter_by(portfolio_id=portfolio_id)
+
+    if transaction_type:
+        query = query.filter(TransactionHistory.transaction_type == transaction_type)
+
+    records = query.order_by(TransactionHistory.date.desc(), TransactionHistory.created_at.desc()).all()
+    return jsonify([record.to_dict() for record in records]), 200
 
 
 @portfolio_bp.route('/portfolios/<int:portfolio_id>/nav-snapshot', methods=['POST'])

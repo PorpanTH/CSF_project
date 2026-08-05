@@ -6,12 +6,15 @@ import { AccumulatedPnLChart } from './components/AccumulatedPnLChart'
 import { BuyFlow } from './components/BuyFlow'
 import { HoldingsFluctuationList } from './components/HoldingsFluctuationList'
 import { TradeModal } from './components/TradeModal'
+import { SellTransactionModal } from './components/SellTransactionModal'
+import { TransactionHistoryScreen } from './components/TransactionHistoryScreen'
+import { ProductDetailModal } from './components/ProductDetailModal'
 import { Toast } from './components/Toast'
 import { portfolioAPI } from './services/api'
 import {
   getHoldingsFluctuations,
 } from './services/mockData'
-import { PortfolioItem, MarketEquity, PortfolioMetrics } from './types'
+import { HoldingFluctuation, PortfolioItem, MarketEquity, PortfolioMetrics } from './types'
 import { Header } from './components/Header.tsx'
 
 type ProductCategory = 'stock' | 'bond' | 'etf' | 'other'
@@ -76,6 +79,8 @@ export default function App() {
     sector?: string
     region?: string
   } | null>(null)
+  const [selectedProduct, setSelectedProduct] = useState<{ ticker: string; equity: MarketEquity; product: ProductOption } | null>(null)
+  const [activeSale, setActiveSale] = useState<HoldingFluctuation | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
 
   useEffect(() => {
@@ -171,14 +176,16 @@ export default function App() {
   })), [])
 
 
-  const handleConfirmTrade = async (quantity: number) => {
+  const handleConfirmTrade = async (quantity: number, entryDate?: string, entryPrice?: number) => {
     if (!activeTrade) return
 
     const { mode, ticker, price, maxQuantity } = activeTrade
     const timestamp = new Date().toISOString()
 
     if (mode === 'buy') {
-      const totalCost = quantity * price
+      const buyDate = entryDate ?? new Date().toISOString().slice(0, 10)
+      const buyPrice = entryPrice ?? price
+      const totalCost = quantity * buyPrice
 
       const itemType = activeTrade.itemType ?? 'stock'
       const existing = findMatchingHolding(items, ticker, itemType)
@@ -188,11 +195,11 @@ export default function App() {
         const newAvgCost = calculateWeightedAveragePurchasePrice(
           existing.purchasePrice,
           existing.quantity,
-          price,
+          buyPrice,
           quantity,
         )
         nextItems = nextItems.map(i => i.id === existing.id
-          ? { ...i, quantity: newQty, purchasePrice: newAvgCost, currentPrice: price, updatedAt: timestamp, priceHistory: [...i.priceHistory.slice(-29), price] }
+          ? { ...i, quantity: newQty, purchasePrice: newAvgCost, currentPrice: buyPrice, updatedAt: timestamp, priceHistory: [...i.priceHistory.slice(-29), buyPrice] }
           : i
         )
       } else {
@@ -204,24 +211,34 @@ export default function App() {
             itemType,
             ticker,
             quantity,
-            purchasePrice: price,
-            purchaseDate: new Date().toISOString().slice(0, 10),
-            currentPrice: price,
+            purchasePrice: buyPrice,
+            purchaseDate: buyDate,
+            currentPrice: buyPrice,
             createdAt: timestamp,
             updatedAt: timestamp,
             sector: activeTrade.sector ?? 'Unknown',
             region: activeTrade.region ?? 'Unknown',
-            priceHistory: [price],
+            priceHistory: [buyPrice],
           },
         ]
       }
 
       try {
         await commitItems(nextItems)
+        if (!portfolioId) {
+          throw new Error('Portfolio is not loaded yet')
+        }
+        await portfolioAPI.recordBuyTransaction(portfolioId, {
+          ticker,
+          date: buyDate,
+          price: buyPrice,
+          quantity,
+          itemType,
+        })
         await loadPortfolio()
-        setToast({ message: `Placed buy order for ${quantity} ${ticker}.`, type: 'success' })
+        setToast({ message: `Recorded buy for ${quantity} ${ticker}.`, type: 'success' })
       } catch (error) {
-        setToast({ message: 'Failed to persist buy order to the backend.', type: 'error' })
+        setToast({ message: 'Failed to record the buy transaction.', type: 'error' })
         setActiveTrade(null)
         return
       }
@@ -279,20 +296,40 @@ export default function App() {
     })
   }
 
-  const openSellModal = (ticker: string) => {
-    const item = items.find(i => i.ticker === ticker && i.itemType !== 'cash')
+  const openSellModal = (holding: HoldingFluctuation) => {
+    const item = items.find(i => i.ticker === holding.ticker && i.itemType === holding.itemType)
     if (!item) {
       setToast({ message: 'No holding found for this security.', type: 'error' })
       return
     }
 
-    setActiveTrade({
-      mode: 'sell',
-      ticker: item.ticker,
-      price: item.currentPrice,
-      maxQuantity: item.quantity,
-      name: item.ticker,
-    })
+    setActiveSale({ ...holding, quantity: item.quantity, currentPrice: item.currentPrice })
+  }
+
+  const handleRecordSale = async (saleDate: string, soldPrice: number, quantity: number) => {
+    if (!activeSale || !portfolioId) return
+
+    const item = items.find(i => i.ticker === activeSale.ticker && i.itemType === activeSale.itemType)
+    if (!item) {
+      setToast({ message: 'No holding found for this security.', type: 'error' })
+      setActiveSale(null)
+      return
+    }
+
+    try {
+      await portfolioAPI.recordSellTransaction(portfolioId, {
+        ticker: item.ticker,
+        date: saleDate,
+        price: soldPrice,
+        quantity,
+      })
+      await loadPortfolio()
+      setToast({ message: `Recorded sale for ${quantity} ${item.ticker}.`, type: 'success' })
+    } catch (error) {
+      setToast({ message: 'Failed to record the sale transaction.', type: 'error' })
+    } finally {
+      setActiveSale(null)
+    }
   }
 
   const handleExplorerBuy = (equity: MarketEquity) => {
@@ -387,6 +424,10 @@ export default function App() {
 
           <HoldingsFluctuationList holdings={holdings} onSell={openSellModal} />
         </div>
+
+        <div className="mb-8">
+          <TransactionHistoryScreen portfolioId={portfolioId} />
+        </div>
       </main>
 
       {activeTrade && (
@@ -399,6 +440,34 @@ export default function App() {
           availableBalance={activeTrade.availableBalance}
           onConfirm={handleConfirmTrade}
           onClose={() => setActiveTrade(null)}
+        />
+      )}
+
+      {activeSale && (
+        <SellTransactionModal
+          holding={activeSale}
+          onConfirm={handleRecordSale}
+          onClose={() => setActiveSale(null)}
+        />
+      )}
+
+      {selectedProduct && (
+        <ProductDetailModal
+          ticker={selectedProduct.equity.ticker}
+          name={selectedProduct.equity.name}
+          sector={selectedProduct.equity.sector}
+          region={selectedProduct.equity.region}
+          price={selectedProduct.equity.price}
+          changePercent={selectedProduct.equity.changePercent}
+          priceHistory={selectedProduct.equity.priceHistory.length > 0 ? selectedProduct.equity.priceHistory : Array(30).fill(selectedProduct.equity.price)}
+          news={(MOCK_NEWS[selectedProduct.equity.ticker] || []).map((n, i) => ({
+            id: `news-${i}`,
+            title: n.title,
+            source: n.source,
+            date: new Date(Date.now() - i * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            summary: n.summary,
+          }))}
+          onClose={() => setSelectedProduct(null)}
         />
       )}
 

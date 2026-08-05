@@ -93,6 +93,43 @@ export interface HoldingFluctuation {
   priceHistory: number[]
 }
 
+export interface SellTransactionRequest {
+  ticker: string
+  date: string
+  price: number
+  quantity: number
+}
+
+export interface BuyTransactionRequest {
+  ticker: string
+  date: string
+  price: number
+  quantity: number
+  itemType?: PortfolioItem['itemType']
+}
+
+export interface TransactionHistoryRecord {
+  id: number
+  portfolioId: number
+  portfolioItemId?: number | null
+  type: 'buy' | 'sell'
+  transactionType?: 'buy' | 'sell'
+  ticker: string
+  quantity: number
+  price: number
+  date: string
+  salePrice?: number
+  saleDate?: string
+  costBasis: number
+  proceeds: number
+  realizedPnl: number
+  createdAt: string | null
+}
+
+export interface TransactionHistoryFilters {
+  type?: 'buy' | 'sell'
+}
+
 export interface MarketEquity {
   ticker: string
   name: string
