@@ -1,4 +1,4 @@
-import { Portfolio, PnLRange, PnLSeriesPoint, HoldingFluctuation, BreakdownSlice, PortfolioItem, MarketEquity } from '../types'
+import { Portfolio, PnLRange, PnLSeriesPoint, HoldingFluctuation, BreakdownSlice, PortfolioItem } from '../types'
 
 const priceHistory = (current: number, points = 30, volatility = 0.02) => {
   const history: number[] = []
@@ -300,30 +300,3 @@ export const getHoldingsFluctuations = (items: PortfolioItem[]): HoldingFluctuat
     })
 }
 
-// --- Market (available equities to trade) ---
-
-const marketSeed: Omit<MarketEquity, 'priceHistory'>[] = [
-  { ticker: 'AAPL', name: 'Apple Inc.', sector: 'Technology', region: 'North America', price: 228.45, changePercent: 1.8 },
-  { ticker: 'MSFT', name: 'Microsoft Corp.', sector: 'Technology', region: 'North America', price: 417.89, changePercent: 0.9 },
-  { ticker: 'GOOGL', name: 'Alphabet Inc.', sector: 'Technology', region: 'North America', price: 155.62, changePercent: -0.6 },
-  { ticker: 'AMZN', name: 'Amazon.com Inc.', sector: 'Consumer Discretionary', region: 'North America', price: 186.30, changePercent: 2.1 },
-  { ticker: 'NVDA', name: 'NVIDIA Corp.', sector: 'Technology', region: 'North America', price: 118.40, changePercent: 3.4 },
-  { ticker: 'TSLA', name: 'Tesla Inc.', sector: 'Consumer Discretionary', region: 'North America', price: 245.80, changePercent: -2.3 },
-  { ticker: 'ASML', name: 'ASML Holding N.V.', sector: 'Technology', region: 'Europe', price: 680.30, changePercent: 1.2 },
-  { ticker: 'TSM', name: 'Taiwan Semiconductor', sector: 'Technology', region: 'Asia', price: 165.20, changePercent: 0.4 },
-  { ticker: 'SAP', name: 'SAP SE', sector: 'Technology', region: 'Europe', price: 210.75, changePercent: 0.7 },
-  { ticker: 'JPM', name: 'JPMorgan Chase & Co.', sector: 'Financials', region: 'North America', price: 214.60, changePercent: -0.3 },
-  { ticker: 'XOM', name: 'Exxon Mobil Corp.', sector: 'Energy', region: 'North America', price: 112.90, changePercent: 0.5 },
-  { ticker: 'PFE', name: 'Pfizer Inc.', sector: 'Healthcare', region: 'North America', price: 28.35, changePercent: -1.1 },
-  { ticker: 'NKE', name: 'Nike Inc.', sector: 'Consumer Discretionary', region: 'North America', price: 76.20, changePercent: -0.8 },
-  { ticker: 'DIS', name: 'The Walt Disney Co.', sector: 'Communication Services', region: 'North America', price: 112.55, changePercent: 1.5 },
-]
-
-let marketCache: MarketEquity[] | null = null
-
-export const getMarketEquities = (): MarketEquity[] => {
-  if (!marketCache) {
-    marketCache = marketSeed.map(eq => ({ ...eq, priceHistory: priceHistory(eq.price) }))
-  }
-  return marketCache
-}
