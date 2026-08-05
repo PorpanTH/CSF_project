@@ -322,6 +322,7 @@ def record_buy_transaction(portfolio_id):
 
     data = request.get_json() or {}
     ticker = (data.get('ticker') or '').strip().upper()
+    item_type_value = (data.get('itemType') or data.get('item_type') or '').strip().lower()
     date_value = data.get('date')
     price_value = data.get('price')
     quantity_value = data.get('quantity')
@@ -352,10 +353,15 @@ def record_buy_transaction(portfolio_id):
 
     cost_basis = round(quantity * price, 2)
 
+    item_query = PortfolioItem.query.filter_by(portfolio_id=portfolio_id, ticker=ticker).filter(PortfolioItem.item_type != 'cash')
+    if item_type_value:
+        item_query = item_query.filter(PortfolioItem.item_type == item_type_value)
+    linked_item = item_query.order_by(PortfolioItem.updated_at.desc(), PortfolioItem.id.desc()).first()
+
     try:
         transaction = TransactionHistory(
             portfolio_id=portfolio_id,
-            portfolio_item_id=None,
+            portfolio_item_id=linked_item.id if linked_item else None,
             transaction_type='buy',
             ticker=ticker,
             quantity=quantity,
@@ -376,6 +382,7 @@ def record_buy_transaction(portfolio_id):
             quantity=quantity,
             price=price,
             date=str(transaction_date),
+            portfolio_item_id=transaction.portfolio_item_id,
         )
 
         return jsonify(transaction.to_dict()), 201

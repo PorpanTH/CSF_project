@@ -39,11 +39,6 @@ export const Header = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/transactions" className="block py-2 md:py-0 hover:text-blue-400 transition-colors">
-                  Transactions
-                </Link>
-              </li>
-              <li>
                 <Link to="/add-portfolio" className="block py-2 md:py-0 px-4 py-2 md:py-0 bg-white-600 md:bg-white-600 rounded-lg hover:bg-black-700 transition-colors">
                   New Portfolio
                 </Link>

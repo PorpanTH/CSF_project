@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowUpRight, PieChart, Wallet } from 'lucide-react'
-import { useLocation } from 'react-router-dom'
 import { PnLOverview } from './components/PnLOverview'
 import { AccumulatedPnLChart } from './components/AccumulatedPnLChart'
 import { HoldingsFluctuationList } from './components/HoldingsFluctuationList'
@@ -151,7 +150,6 @@ const PRODUCT_OPTIONS: ProductOption[] = [
 ]
 
 export default function App() {
-  const location = useLocation()
   const [portfolioId, setPortfolioId] = useState<string | null>(null)
   const [items, setItems] = useState<PortfolioItem[]>([])
   const [portfolioMetrics, setPortfolioMetrics] = useState<PortfolioMetrics | null>(null)
@@ -321,6 +319,7 @@ export default function App() {
           date: buyDate,
           price: buyPrice,
           quantity,
+          itemType,
         })
         await loadPortfolio()
         setToast({ message: `Recorded buy for ${quantity} ${ticker}.`, type: 'success' })
@@ -450,10 +449,6 @@ export default function App() {
     }
   }
 
-  if (location.pathname === '/transactions') {
-    return <TransactionHistoryScreen portfolioId={portfolioId} />
-  }
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 text-slate-700">
@@ -525,6 +520,10 @@ export default function App() {
           </div>
 
           <HoldingsFluctuationList holdings={holdings} onSell={openSellModal} />
+        </div>
+
+        <div className="mb-8">
+          <TransactionHistoryScreen portfolioId={portfolioId} />
         </div>
       </main>
 

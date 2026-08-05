@@ -96,6 +96,7 @@ export interface BuyTransactionRequest {
   date: string
   price: number
   quantity: number
+  itemType?: PortfolioItem['itemType']
 }
 
 export interface TransactionHistoryRecord {
