@@ -230,9 +230,10 @@ def record_sell_transaction(portfolio_id):
     ticker = (data.get('ticker') or '').strip().upper()
     sale_date_value = data.get('saleDate') or data.get('sale_date')
     sale_price_value = data.get('soldPrice', data.get('salePrice', data.get('price')))
+    quantity_value = data.get('quantity')
 
-    if not ticker or not sale_date_value or sale_price_value is None:
-        return jsonify({'error': 'ticker, saleDate, and soldPrice are required'}), 400
+    if not ticker or not sale_date_value or sale_price_value is None or quantity_value is None:
+        return jsonify({'error': 'ticker, saleDate, soldPrice, and quantity are required'}), 400
 
     try:
         sale_date = datetime.strptime(sale_date_value, '%Y-%m-%d').date()
@@ -247,11 +248,21 @@ def record_sell_transaction(portfolio_id):
     if sold_price <= 0:
         return jsonify({'error': 'soldPrice must be greater than 0'}), 400
 
+    try:
+        quantity = float(quantity_value)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'quantity must be a number'}), 400
+
+    if quantity <= 0:
+        return jsonify({'error': 'quantity must be greater than 0'}), 400
+
     item = PortfolioItem.query.filter_by(portfolio_id=portfolio_id, ticker=ticker).filter(PortfolioItem.item_type != 'cash').first()
     if not item:
         return jsonify({'error': 'Item not found'}), 404
 
-    quantity = item.quantity
+    if quantity > item.quantity:
+        return jsonify({'error': 'quantity exceeds holding size'}), 400
+
     proceeds = round(quantity * sold_price, 2)
     cost_basis = round(quantity * item.purchase_price, 2)
     realized_pnl = round(proceeds - cost_basis, 2)
@@ -261,6 +272,13 @@ def record_sell_transaction(portfolio_id):
         if cash_item:
             cash_item.quantity = round(cash_item.quantity + proceeds, 2)
             cash_item.updated_at = datetime.utcnow()
+
+        remaining_quantity = round(item.quantity - quantity, 10)
+        if remaining_quantity <= 0:
+            db.session.delete(item)
+        else:
+            item.quantity = remaining_quantity
+            item.updated_at = datetime.utcnow()
 
         transaction = TransactionHistory(
             portfolio_id=portfolio_id,
@@ -276,7 +294,6 @@ def record_sell_transaction(portfolio_id):
         )
 
         db.session.add(transaction)
-        db.session.delete(item)
         db.session.commit()
 
         _log_action(

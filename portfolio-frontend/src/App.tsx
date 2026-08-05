@@ -382,7 +382,7 @@ export default function App() {
     setActiveSale({ ...holding, quantity: item.quantity, currentPrice: item.currentPrice })
   }
 
-  const handleRecordSale = async (saleDate: string, soldPrice: number) => {
+  const handleRecordSale = async (saleDate: string, soldPrice: number, quantity: number) => {
     if (!activeSale || !portfolioId) return
 
     const item = items.find(i => i.ticker === activeSale.ticker && i.itemType === activeSale.itemType)
@@ -397,9 +397,10 @@ export default function App() {
         ticker: item.ticker,
         saleDate,
         soldPrice,
+        quantity,
       })
       await loadPortfolio()
-      setToast({ message: `Recorded sale for ${item.quantity} ${item.ticker}.`, type: 'success' })
+      setToast({ message: `Recorded sale for ${quantity} ${item.ticker}.`, type: 'success' })
     } catch (error) {
       setToast({ message: 'Failed to record the sale transaction.', type: 'error' })
     } finally {

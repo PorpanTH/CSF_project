@@ -88,6 +88,7 @@ export interface SellTransactionRequest {
   ticker: string
   saleDate: string
   soldPrice: number
+  quantity: number
 }
 
 export interface TransactionHistoryRecord {
