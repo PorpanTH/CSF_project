@@ -1,6 +1,9 @@
 import { LineChart, Line, ResponsiveContainer } from 'recharts'
 import { HoldingFluctuation } from '../types'
-import { STATUS } from '../theme/colors'
+import { STATUS, BRAND } from '../theme/colors'
+import { Search, ArrowUpDown } from 'lucide-react'
+import { useState } from 'react'
+
 
 interface HoldingsFluctuationListProps {
   holdings: HoldingFluctuation[]
@@ -18,14 +21,22 @@ const Sparkline = ({ history, color }: { history: number[]; color: string }) => 
 )
 
 export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuationListProps) => {
+  const [query, setQuery] = useState('')
+  
   return (
-    <div className="card border border-slate-200 flex flex-col">
-      <div className="flex items-start justify-between mb-5">
-        <div>
-          <h3 className="text-lg font-bold text-gray-900">Portfolio sell desk</h3>
-          <p className="text-sm text-gray-500 mt-1">Professional watchlist for monitoring holdings and preparing exits</p>
+    <div>
+      <div className="flex gap-3 items-center mb-4">
+        <div className="relative flex-1">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search by ticker or name..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="input-field pl-9 w-full"
+          />
         </div>
-        <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
+        <div className="rounded-full bg-slate-100 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 whitespace-nowrap">
           {holdings.length} holdings
         </div>
       </div>
@@ -58,6 +69,7 @@ export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuatio
                   <button
                     onClick={() => onSell(holding.ticker)}
                     className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-700"
+                    style={{ backgroundColor: BRAND[700] }}
                   >
                     Remove
                   </button>

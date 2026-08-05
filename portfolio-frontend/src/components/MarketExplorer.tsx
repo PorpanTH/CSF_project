@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Search, ArrowUpDown } from 'lucide-react'
 import { MarketEquity } from '../types'
-import { STATUS, BRAND } from '../theme/colors'
+import { STATUS } from '../theme/colors'
 
 interface MarketExplorerProps {
   equities: MarketEquity[]
