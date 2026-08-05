@@ -170,8 +170,9 @@ class TransactionHistory(db.Model):
     transaction_type = db.Column(db.String(20), nullable=False)
     ticker = db.Column(db.String(20), nullable=False)
     quantity = db.Column(db.Float, nullable=False)
-    sale_price = db.Column(db.Float, nullable=False)
-    sale_date = db.Column(db.Date, nullable=False)
+    # Keep underlying column names for compatibility with existing tables.
+    price = db.Column('sale_price', db.Float, nullable=False)
+    date = db.Column('sale_date', db.Date, nullable=False)
     cost_basis = db.Column(db.Float, nullable=False)
     proceeds = db.Column(db.Float, nullable=False)
     realized_pnl = db.Column(db.Float, nullable=False)
@@ -185,11 +186,14 @@ class TransactionHistory(db.Model):
             'id': self.id,
             'portfolioId': self.portfolio_id,
             'portfolioItemId': self.portfolio_item_id,
+            'type': self.transaction_type,
             'transactionType': self.transaction_type,
             'ticker': self.ticker,
             'quantity': self.quantity,
-            'salePrice': self.sale_price,
-            'saleDate': self.sale_date.isoformat(),
+            'price': self.price,
+            'date': self.date.isoformat(),
+            'salePrice': self.price,
+            'saleDate': self.date.isoformat(),
             'costBasis': self.cost_basis,
             'proceeds': self.proceeds,
             'realizedPnl': self.realized_pnl,

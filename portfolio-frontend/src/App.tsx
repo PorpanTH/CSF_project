@@ -264,14 +264,16 @@ export default function App() {
   })), [])
 
 
-  const handleConfirmTrade = async (quantity: number) => {
+  const handleConfirmTrade = async (quantity: number, entryDate?: string, entryPrice?: number) => {
     if (!activeTrade) return
 
     const { mode, ticker, price, maxQuantity } = activeTrade
     const timestamp = new Date().toISOString()
 
     if (mode === 'buy') {
-      const totalCost = quantity * price
+      const buyDate = entryDate ?? new Date().toISOString().slice(0, 10)
+      const buyPrice = entryPrice ?? price
+      const totalCost = quantity * buyPrice
 
       const itemType = activeTrade.itemType ?? 'stock'
       const existing = findMatchingHolding(items, ticker, itemType)
@@ -281,11 +283,11 @@ export default function App() {
         const newAvgCost = calculateWeightedAveragePurchasePrice(
           existing.purchasePrice,
           existing.quantity,
-          price,
+          buyPrice,
           quantity,
         )
         nextItems = nextItems.map(i => i.id === existing.id
-          ? { ...i, quantity: newQty, purchasePrice: newAvgCost, currentPrice: price, updatedAt: timestamp, priceHistory: [...i.priceHistory.slice(-29), price] }
+          ? { ...i, quantity: newQty, purchasePrice: newAvgCost, currentPrice: buyPrice, updatedAt: timestamp, priceHistory: [...i.priceHistory.slice(-29), buyPrice] }
           : i
         )
       } else {
@@ -297,24 +299,33 @@ export default function App() {
             itemType,
             ticker,
             quantity,
-            purchasePrice: price,
-            purchaseDate: new Date().toISOString().slice(0, 10),
-            currentPrice: price,
+            purchasePrice: buyPrice,
+            purchaseDate: buyDate,
+            currentPrice: buyPrice,
             createdAt: timestamp,
             updatedAt: timestamp,
             sector: activeTrade.sector ?? 'Unknown',
             region: activeTrade.region ?? 'Unknown',
-            priceHistory: [price],
+            priceHistory: [buyPrice],
           },
         ]
       }
 
       try {
         await commitItems(nextItems)
+        if (!portfolioId) {
+          throw new Error('Portfolio is not loaded yet')
+        }
+        await portfolioAPI.recordBuyTransaction(portfolioId, {
+          ticker,
+          date: buyDate,
+          price: buyPrice,
+          quantity,
+        })
         await loadPortfolio()
-        setToast({ message: `Placed buy order for ${quantity} ${ticker}.`, type: 'success' })
+        setToast({ message: `Recorded buy for ${quantity} ${ticker}.`, type: 'success' })
       } catch (error) {
-        setToast({ message: 'Failed to persist buy order to the backend.', type: 'error' })
+        setToast({ message: 'Failed to record the buy transaction.', type: 'error' })
         setActiveTrade(null)
         return
       }
@@ -395,8 +406,8 @@ export default function App() {
     try {
       await portfolioAPI.recordSellTransaction(portfolioId, {
         ticker: item.ticker,
-        saleDate,
-        soldPrice,
+        date: saleDate,
+        price: soldPrice,
         quantity,
       })
       await loadPortfolio()

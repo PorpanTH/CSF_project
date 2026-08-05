@@ -8,16 +8,19 @@ interface TradeModalProps {
   price: number
   maxQuantity?: number
   availableBalance?: number
-  onConfirm: (quantity: number) => void
+  onConfirm: (quantity: number, date?: string, price?: number) => void
   onClose: () => void
 }
 
 export const TradeModal = ({ mode, ticker, name, price, maxQuantity, availableBalance, onConfirm, onClose }: TradeModalProps) => {
   const [quantity, setQuantity] = useState<number>(1)
-  const total = quantity * price
+  const [entryDate, setEntryDate] = useState(new Date().toISOString().slice(0, 10))
+  const [entryPrice, setEntryPrice] = useState<number>(price)
+  const total = quantity * (mode === 'buy' ? entryPrice : price)
 
   const error =
     quantity <= 0 ? 'Enter a quantity greater than 0' :
+    mode === 'buy' && (!entryDate || Number.isNaN(entryPrice) || entryPrice <= 0) ? 'Provide a valid buy date and buy price' :
     mode === 'buy' && availableBalance !== undefined && total > availableBalance ? 'Insufficient available balance' :
     mode === 'sell' && maxQuantity !== undefined && quantity > maxQuantity ? `You only hold ${maxQuantity} shares` :
     null
@@ -52,6 +55,31 @@ export const TradeModal = ({ mode, ticker, name, price, maxQuantity, availableBa
               )}
             </div>
 
+            {mode === 'buy' && (
+              <>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Buy date</label>
+                  <input
+                    type="date"
+                    value={entryDate}
+                    onChange={(e) => setEntryDate(e.target.value)}
+                    className="input-field"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Buy price per share</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={entryPrice}
+                    onChange={(e) => setEntryPrice(Number(e.target.value))}
+                    className="input-field"
+                  />
+                </div>
+              </>
+            )}
+
             <div className="flex justify-between text-sm border-t border-gray-100 pt-3">
               <span className="text-gray-600">{mode === 'buy' ? 'Total cost' : 'Total proceeds'}</span>
               <span className="font-bold text-gray-900">${total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
@@ -69,7 +97,7 @@ export const TradeModal = ({ mode, ticker, name, price, maxQuantity, availableBa
 
           <div className="flex gap-3 mt-6">
             <button
-              onClick={() => !error && onConfirm(quantity)}
+              onClick={() => !error && onConfirm(quantity, entryDate, mode === 'buy' ? entryPrice : price)}
               disabled={!!error}
               className="flex-1 btn text-white disabled:opacity-40 disabled:cursor-not-allowed"
               style={{ backgroundColor: mode === 'buy' ? BRAND[700] : STATUS.good }}
