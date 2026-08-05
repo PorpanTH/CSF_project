@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { ArrowUpRight, PieChart, Wallet } from 'lucide-react'
 import { PnLOverview } from './components/PnLOverview'
 import { AccumulatedPnLChart } from './components/AccumulatedPnLChart'
+import { BuyFlow } from './components/BuyFlow'
 import { HoldingsFluctuationList } from './components/HoldingsFluctuationList'
-import { MarketExplorer } from './components/MarketExplorer'
 import { TradeModal } from './components/TradeModal'
 import { Toast } from './components/Toast'
 import { portfolioAPI } from './services/api'
@@ -372,19 +372,7 @@ export default function App() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 mb-8">
-          <div className="card border border-slate-200 flex flex-col">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Buy flow</p>
-                <h2 className="text-2xl font-bold text-gray-900 mt-2">Search and buy financial products</h2>
-                <p className="text-gray-600 mt-2">Search across available products and open a trade for the selected instrument.</p>
-              </div>
-            </div>
-
-            <div className="mt-6 overflow-y-auto flex-1" style={{ maxHeight: '600px' }}>
-              <MarketExplorer equities={marketCatalog} onBuy={handleExplorerBuy} />
-            </div>
-          </div>
+          <BuyFlow marketCatalog={marketCatalog} handleExplorerBuy={handleExplorerBuy} />
 
           <HoldingsFluctuationList holdings={holdings} onSell={openSellModal} />
         </div>
