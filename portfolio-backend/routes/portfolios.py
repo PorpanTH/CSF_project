@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, current_app
 import yfinance as yf
 from database.db import db
-from models.portfolio import Portfolio, PortfolioItem
+from models.portfolio import Portfolio, PortfolioItem, TransactionHistory
 from routes.auth import get_default_user
 from services.nav_history import (
     record_nav_snapshot,
@@ -216,6 +216,101 @@ def delete_portfolio_item(portfolio_id, item_id):
         current_app.logger.exception('failed to delete portfolio item')
         db.session.rollback()
         return jsonify({'error': 'Failed to delete item'}), 500
+
+
+@portfolio_bp.route('/portfolios/<int:portfolio_id>/transactions/sell', methods=['POST'])
+def record_sell_transaction(portfolio_id):
+    _log_action('record sell transaction request', portfolio_id=portfolio_id)
+
+    portfolio = Portfolio.query.filter_by(id=portfolio_id, user_id=USER_ID).first()
+    if not portfolio:
+        return jsonify({'error': 'Portfolio not found'}), 404
+
+    data = request.get_json() or {}
+    ticker = (data.get('ticker') or '').strip().upper()
+    sale_date_value = data.get('saleDate') or data.get('sale_date')
+    sale_price_value = data.get('soldPrice', data.get('salePrice', data.get('price')))
+
+    if not ticker or not sale_date_value or sale_price_value is None:
+        return jsonify({'error': 'ticker, saleDate, and soldPrice are required'}), 400
+
+    try:
+        sale_date = datetime.strptime(sale_date_value, '%Y-%m-%d').date()
+    except ValueError:
+        return jsonify({'error': 'saleDate must be in YYYY-MM-DD format'}), 400
+
+    try:
+        sold_price = float(sale_price_value)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'soldPrice must be a number'}), 400
+
+    if sold_price <= 0:
+        return jsonify({'error': 'soldPrice must be greater than 0'}), 400
+
+    item = PortfolioItem.query.filter_by(portfolio_id=portfolio_id, ticker=ticker).filter(PortfolioItem.item_type != 'cash').first()
+    if not item:
+        return jsonify({'error': 'Item not found'}), 404
+
+    quantity = item.quantity
+    proceeds = round(quantity * sold_price, 2)
+    cost_basis = round(quantity * item.purchase_price, 2)
+    realized_pnl = round(proceeds - cost_basis, 2)
+
+    try:
+        cash_item = PortfolioItem.query.filter_by(portfolio_id=portfolio_id, item_type='cash').first()
+        if cash_item:
+            cash_item.quantity = round(cash_item.quantity + proceeds, 2)
+            cash_item.updated_at = datetime.utcnow()
+
+        transaction = TransactionHistory(
+            portfolio_id=portfolio_id,
+            portfolio_item_id=item.id,
+            transaction_type='sell',
+            ticker=item.ticker,
+            quantity=quantity,
+            sale_price=sold_price,
+            sale_date=sale_date,
+            cost_basis=cost_basis,
+            proceeds=proceeds,
+            realized_pnl=realized_pnl,
+        )
+
+        db.session.add(transaction)
+        db.session.delete(item)
+        db.session.commit()
+
+        _log_action(
+            'sell transaction recorded',
+            portfolio_id=portfolio_id,
+            ticker=item.ticker,
+            quantity=quantity,
+            sale_price=sold_price,
+            sale_date=str(sale_date),
+        )
+
+        return jsonify(transaction.to_dict()), 201
+    except Exception:
+        current_app.logger.exception('failed to record sell transaction')
+        db.session.rollback()
+        return jsonify({'error': 'Failed to record sell transaction'}), 500
+
+
+@portfolio_bp.route('/portfolios/<int:portfolio_id>/transactions', methods=['GET'])
+def get_transaction_history(portfolio_id):
+    _log_action('get transaction history', portfolio_id=portfolio_id)
+
+    portfolio = Portfolio.query.filter_by(id=portfolio_id, user_id=USER_ID).first()
+    if not portfolio:
+        return jsonify({'error': 'Portfolio not found'}), 404
+
+    transaction_type = (request.args.get('type') or '').strip().lower()
+    query = TransactionHistory.query.filter_by(portfolio_id=portfolio_id)
+
+    if transaction_type:
+        query = query.filter(TransactionHistory.transaction_type == transaction_type)
+
+    records = query.order_by(TransactionHistory.sale_date.desc(), TransactionHistory.created_at.desc()).all()
+    return jsonify([record.to_dict() for record in records]), 200
 
 
 @portfolio_bp.route('/portfolios/<int:portfolio_id>/nav-snapshot', methods=['POST'])

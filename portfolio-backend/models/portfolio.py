@@ -159,3 +159,39 @@ class PortfolioNavHistory(db.Model):
             'date': self.snapshot_date.isoformat(),
             'nav': self.nav
         }
+
+
+class TransactionHistory(db.Model):
+    __tablename__ = 'transaction_history'
+
+    id = db.Column(db.Integer, primary_key=True)
+    portfolio_id = db.Column(db.Integer, db.ForeignKey('portfolios.id'), nullable=False)
+    portfolio_item_id = db.Column(db.Integer, nullable=True)
+    transaction_type = db.Column(db.String(20), nullable=False)
+    ticker = db.Column(db.String(20), nullable=False)
+    quantity = db.Column(db.Float, nullable=False)
+    sale_price = db.Column(db.Float, nullable=False)
+    sale_date = db.Column(db.Date, nullable=False)
+    cost_basis = db.Column(db.Float, nullable=False)
+    proceeds = db.Column(db.Float, nullable=False)
+    realized_pnl = db.Column(db.Float, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    def __repr__(self):
+        return f'<TransactionHistory portfolio_id={self.portfolio_id} ticker={self.ticker} type={self.transaction_type}>'
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'portfolioId': self.portfolio_id,
+            'portfolioItemId': self.portfolio_item_id,
+            'transactionType': self.transaction_type,
+            'ticker': self.ticker,
+            'quantity': self.quantity,
+            'salePrice': self.sale_price,
+            'saleDate': self.sale_date.isoformat(),
+            'costBasis': self.cost_basis,
+            'proceeds': self.proceeds,
+            'realizedPnl': self.realized_pnl,
+            'createdAt': self.created_at.isoformat() if self.created_at else None,
+        }

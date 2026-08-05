@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { Portfolio, PortfolioItem } from '../types'
+import { Portfolio, PortfolioItem, SellTransactionRequest, TransactionHistoryRecord, TransactionHistoryFilters } from '../types'
 
 const viteEnv = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env
 const API_BASE_URL = viteEnv?.VITE_API_URL || 'http://localhost:5000/api'
@@ -54,6 +54,16 @@ export const portfolioAPI = {
 
   deleteItem: async (portfolioId: string, itemId: string): Promise<void> => {
     await apiClient.delete(`/portfolios/${portfolioId}/items/${itemId}`)
+  },
+
+  recordSellTransaction: async (portfolioId: string, payload: SellTransactionRequest): Promise<TransactionHistoryRecord> => {
+    const response = await apiClient.post(`/portfolios/${portfolioId}/transactions/sell`, payload)
+    return response.data
+  },
+
+  getTransactionHistory: async (portfolioId: string, filters?: TransactionHistoryFilters): Promise<TransactionHistoryRecord[]> => {
+    const response = await apiClient.get(`/portfolios/${portfolioId}/transactions`, { params: filters })
+    return response.data
   },
 }
 

@@ -1,17 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowUpRight, PieChart, Wallet } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
 import { PnLOverview } from './components/PnLOverview'
 import { AccumulatedPnLChart } from './components/AccumulatedPnLChart'
 import { HoldingsFluctuationList } from './components/HoldingsFluctuationList'
 import { MarketExplorer } from './components/MarketExplorer'
 import { TradeModal } from './components/TradeModal'
+import { SellTransactionModal } from './components/SellTransactionModal'
+import { TransactionHistoryScreen } from './components/TransactionHistoryScreen'
 import { ProductDetailModal } from './components/ProductDetailModal'
 import { Toast } from './components/Toast'
 import { portfolioAPI } from './services/api'
 import {
   getHoldingsFluctuations,
 } from './services/mockData'
-import { PortfolioItem, MarketEquity, PortfolioMetrics } from './types'
+import { HoldingFluctuation, PortfolioItem, MarketEquity, PortfolioMetrics } from './types'
 import { Header } from './components/Header.tsx'
 
 type ProductCategory = 'stock' | 'bond' | 'etf' | 'other'
@@ -148,6 +151,7 @@ const PRODUCT_OPTIONS: ProductOption[] = [
 ]
 
 export default function App() {
+  const location = useLocation()
   const [portfolioId, setPortfolioId] = useState<string | null>(null)
   const [items, setItems] = useState<PortfolioItem[]>([])
   const [portfolioMetrics, setPortfolioMetrics] = useState<PortfolioMetrics | null>(null)
@@ -164,6 +168,7 @@ export default function App() {
     region?: string
   } | null>(null)
   const [selectedProduct, setSelectedProduct] = useState<{ ticker: string; equity: MarketEquity; product: ProductOption } | null>(null)
+  const [activeSale, setActiveSale] = useState<HoldingFluctuation | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
 
   useEffect(() => {
@@ -367,20 +372,39 @@ export default function App() {
     })
   }
 
-  const openSellModal = (ticker: string) => {
-    const item = items.find(i => i.ticker === ticker && i.itemType !== 'cash')
+  const openSellModal = (holding: HoldingFluctuation) => {
+    const item = items.find(i => i.ticker === holding.ticker && i.itemType === holding.itemType)
     if (!item) {
       setToast({ message: 'No holding found for this security.', type: 'error' })
       return
     }
 
-    setActiveTrade({
-      mode: 'sell',
-      ticker: item.ticker,
-      price: item.currentPrice,
-      maxQuantity: item.quantity,
-      name: item.ticker,
-    })
+    setActiveSale({ ...holding, quantity: item.quantity, currentPrice: item.currentPrice })
+  }
+
+  const handleRecordSale = async (saleDate: string, soldPrice: number) => {
+    if (!activeSale || !portfolioId) return
+
+    const item = items.find(i => i.ticker === activeSale.ticker && i.itemType === activeSale.itemType)
+    if (!item) {
+      setToast({ message: 'No holding found for this security.', type: 'error' })
+      setActiveSale(null)
+      return
+    }
+
+    try {
+      await portfolioAPI.recordSellTransaction(portfolioId, {
+        ticker: item.ticker,
+        saleDate,
+        soldPrice,
+      })
+      await loadPortfolio()
+      setToast({ message: `Recorded sale for ${item.quantity} ${item.ticker}.`, type: 'success' })
+    } catch (error) {
+      setToast({ message: 'Failed to record the sale transaction.', type: 'error' })
+    } finally {
+      setActiveSale(null)
+    }
   }
 
   const handleExplorerBuy = (equity: MarketEquity) => {
@@ -412,6 +436,10 @@ export default function App() {
       default:
         return 'stock'
     }
+  }
+
+  if (location.pathname === '/transactions') {
+    return <TransactionHistoryScreen portfolioId={portfolioId} />
   }
 
   if (isLoading) {
@@ -498,6 +526,14 @@ export default function App() {
           availableBalance={activeTrade.availableBalance}
           onConfirm={handleConfirmTrade}
           onClose={() => setActiveTrade(null)}
+        />
+      )}
+
+      {activeSale && (
+        <SellTransactionModal
+          holding={activeSale}
+          onConfirm={handleRecordSale}
+          onClose={() => setActiveSale(null)}
         />
       )}
 

@@ -4,7 +4,7 @@ import { STATUS } from '../theme/colors'
 
 interface HoldingsFluctuationListProps {
   holdings: HoldingFluctuation[]
-  onSell: (ticker: string) => void
+  onSell: (holding: HoldingFluctuation) => void
 }
 
 const Sparkline = ({ history, color }: { history: number[]; color: string }) => (
@@ -22,8 +22,8 @@ export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuatio
     <div className="card border border-slate-200 flex flex-col">
       <div className="flex items-start justify-between mb-5">
         <div>
-          <h3 className="text-lg font-bold text-gray-900">Portfolio sell desk</h3>
-          <p className="text-sm text-gray-500 mt-1">Professional watchlist for monitoring holdings and preparing exits</p>
+          <h3 className="text-lg font-bold text-gray-900">Portfolio Holdings</h3>
+          <p className="text-sm text-gray-500 mt-1">Dashboard for monitoring holdings and preparing exits</p>
         </div>
         <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
           {holdings.length} holdings
@@ -56,7 +56,7 @@ export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuatio
                     <p className="text-[11px] uppercase tracking-wide text-gray-500">P/L</p>
                   </div>
                   <button
-                    onClick={() => onSell(holding.ticker)}
+                    onClick={() => onSell(holding)}
                     className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-700"
                   >
                     Sell
