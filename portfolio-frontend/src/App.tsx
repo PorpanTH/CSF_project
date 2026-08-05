@@ -333,7 +333,7 @@ export default function App() {
     <div className="min-h-screen bg-[#f8f5f0] text-zinc-950">
       <Header />
 
-      <section className="min-h-[calc(100vh-6rem)] rounded-[32px] border border-black/10 bg-white p-4 shadow-[0_18px_60px_rgba(0,0,0,0.08)] sm:p-6">
+      <section className="min-h-[calc(100vh-6rem)] border border-black/10 bg-white p-4 shadow-[0_18px_60px_rgba(0,0,0,0.08)] sm:p-6">
         <div className="grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)]">
           <aside className="flex min-h-[calc(100vh-10rem)] flex-col rounded-[28px] bg-[#111111] p-3 shadow-[0_12px_35px_rgba(0,0,0,0.22)]">
             <div className="mb-3 rounded-[22px] border border-white/10 bg-white/5 p-3">
@@ -366,7 +366,7 @@ export default function App() {
           <div className="min-w-0">
             {activeTab === 'dashboard' && (
               <div className="space-y-6">
-                <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <section className="grid gap-4 sm:grid-cols-5 xl:grid-cols-3">
                   <div className="rounded-[28px] border border-black/10 bg-[#111111] p-5 text-white shadow-[0_10px_30px_rgba(0,0,0,0.12)]">
                     <div className="flex items-center justify-between gap-3">
                       <div>
@@ -413,10 +413,14 @@ export default function App() {
             )}
 
             {activeTab === 'flow' && (
-              <div className="grid gap-6 xl:grid-cols-2">
+              <div className="grid gap-6 xl:grid-cols-10">
+              <div className="xl:col-span-4">
                 <AddFlow handleExplorerBuy={handleExplorerBuy} />
+              </div>
+              <div className="xl:col-span-6">
                 <RemoveFlow holdings={holdings} handleSell={openSellModal} />
               </div>
+            </div>
             )}
 
             {activeTab === 'history' && (
