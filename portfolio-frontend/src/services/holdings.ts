@@ -4,8 +4,8 @@ export const getHoldingsFluctuations = (items: PortfolioItem[]): HoldingFluctuat
   return items
     .filter(item => item.itemType !== 'cash')
     .map(item => {
-      const first = item.priceHistory[0]
-      const changePercent = first > 0 ? ((item.currentPrice - first) / first) * 100 : 0
+      const basePrice = item.purchasePrice
+      const changePercent = basePrice > 0 ? ((item.currentPrice - basePrice) / basePrice) * 100 : 0
       const unrealizedPnl = (item.currentPrice - item.purchasePrice) * item.quantity
       return {
         ticker: item.ticker,
@@ -16,7 +16,7 @@ export const getHoldingsFluctuations = (items: PortfolioItem[]): HoldingFluctuat
         currentPrice: item.currentPrice,
         changePercent,
         unrealizedPnl,
-        priceHistory: item.priceHistory,
+        priceHistory: [],
       }
     })
 }

@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react'
-import { Search, ArrowUpDown } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Search, ArrowUpDown, Loader } from 'lucide-react'
 import { MarketEquity } from '../types'
 import { STATUS } from '../theme/colors'
+import { marketAPI } from '../services/api'
 
 interface MarketExplorerProps {
-  equities: MarketEquity[]
   onBuy: (equity: MarketEquity) => void
 }
 
@@ -28,19 +28,67 @@ const getCategoryFromName = (name: string): ProductCategory => {
   return 'stock'
 }
 
-export const MarketExplorer = ({ equities, onBuy }: MarketExplorerProps) => {
+export const MarketExplorer = ({ onBuy }: MarketExplorerProps) => {
   const [query, setQuery] = useState('')
+  const [results, setResults] = useState<MarketEquity[]>([])
+  const [loading, setLoading] = useState(false)
   const [sortKey, setSortKey] = useState<SortKey>('ticker')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [category, setCategory] = useState<ProductCategory>('all')
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout>>()
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    const list = equities.filter(eq => {
-      const matchesSearch = !q || eq.ticker.toLowerCase().includes(q) || eq.name.toLowerCase().includes(q)
-      const eqCategory = getCategoryFromName(eq.name)
-      const matchesCategory = category === 'all' || eqCategory === category
-      return matchesSearch && matchesCategory
+  const fetchAndEnrich = async (searchQuery: string, searchCategory: ProductCategory) => {
+    try {
+      setLoading(true)
+      const symbols = await marketAPI.searchSymbols(searchQuery, searchCategory, 25)
+      if (symbols.length === 0) {
+        setResults([])
+        return
+      }
+
+      const tickers = symbols.map(s => s.ticker)
+      const quotes = await marketAPI.getQuotes(tickers)
+
+      const enriched: MarketEquity[] = symbols.map(symbol => ({
+        ticker: symbol.ticker,
+        name: symbol.name,
+        type: symbol.type as 'stock' | 'etf' | 'bond' | 'other',
+        sector: symbol.type === 'etf' ? 'ETF' : symbol.type === 'bond' ? 'Fixed Income' : 'Stock',
+        region: 'United States',
+        price: quotes[symbol.ticker]?.price ?? 0,
+        changePercent: quotes[symbol.ticker]?.dayChangePercent ?? 0,
+        priceHistory: [],
+      }))
+
+      setResults(enriched)
+    } catch (error) {
+      console.error('Search failed:', error)
+      setResults([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+
+    debounceTimerRef.current = setTimeout(async () => {
+      await fetchAndEnrich(query.trim(), category)
+    }, 300)
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+    }
+  }, [query, category])
+
+  const filtered = (() => {
+    const list = [...results].filter(eq => {
+      const eqCategory = eq.type || getCategoryFromName(eq.name)
+      return category === 'all' || eqCategory === category
     })
     const sorted = [...list].sort((a, b) => {
       const av = a[sortKey]
@@ -49,7 +97,7 @@ export const MarketExplorer = ({ equities, onBuy }: MarketExplorerProps) => {
       return sortDir === 'asc' ? cmp : -cmp
     })
     return sorted
-  }, [equities, query, sortKey, sortDir, category])
+  })()
 
   const toggleSort = (key: SortKey) => {
     if (key === sortKey) {
@@ -150,7 +198,9 @@ export const MarketExplorer = ({ equities, onBuy }: MarketExplorerProps) => {
               </tr>
             </thead>
             <tbody>
-              {filtered.map(eq => {
+              {loading ? (
+                <tr><td colSpan={5} className="text-center text-gray-400 py-6"><Loader size={16} className="inline animate-spin mr-2" />Searching...</td></tr>
+              ) : filtered.map(eq => {
                 const positive = eq.changePercent >= 0
                 return (
                   <tr key={eq.ticker} className="border-b border-gray-100 last:border-0 text-left">
@@ -177,7 +227,7 @@ export const MarketExplorer = ({ equities, onBuy }: MarketExplorerProps) => {
                   </tr>
                 )
               })}
-              {filtered.length === 0 && (
+              {!loading && filtered.length === 0 && (
                 <tr><td colSpan={5} className="text-center text-gray-400 py-6">No equities match your search.</td></tr>
               )}
             </tbody>

@@ -2,11 +2,10 @@ import { MarketEquity } from '../types'
 import { MarketExplorer } from "./MarketExplorer";
 
 interface AddFlowProps {
-  marketCatalog: MarketEquity[]
   handleExplorerBuy: (equity: MarketEquity) => void
 }
 
-export const AddFlow = ({ marketCatalog, handleExplorerBuy }: AddFlowProps) => {
+export const AddFlow = ({ handleExplorerBuy }: AddFlowProps) => {
   return (
     <div className="card border border-slate-200 flex flex-col gap-4">
       <div>
@@ -14,7 +13,7 @@ export const AddFlow = ({ marketCatalog, handleExplorerBuy }: AddFlowProps) => {
         <h2 className="text-2xl font-bold text-gray-900 mt-1">Search and Add Financial Products</h2>
       </div>
       <div>
-        <MarketExplorer equities={marketCatalog} onBuy={handleExplorerBuy} />
+        <MarketExplorer onBuy={handleExplorerBuy} />
       </div>
     </div>
   )

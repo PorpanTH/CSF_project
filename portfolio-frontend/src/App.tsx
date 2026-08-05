@@ -16,19 +16,6 @@ import {
 import { HoldingFluctuation, PortfolioItem, MarketEquity, PortfolioMetrics } from './types'
 import { Header } from './components/Header.tsx'
 
-type ProductCategory = 'stock' | 'bond' | 'etf' | 'other'
-
-interface ProductOption {
-  id: string
-  category: ProductCategory
-  ticker: string
-  name: string
-  price: number
-  sector: string
-  region: string
-  description: string
-}
-
 const uid = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
 const calculateWeightedAveragePurchasePrice = (
@@ -53,15 +40,6 @@ const findMatchingHolding = (
   itemType: PortfolioItem['itemType'],
 ) => holdings.find(holding => holding.ticker.toUpperCase() === ticker.toUpperCase() && holding.itemType === itemType)
 
-// Need to implement search bar and show actual equity list for each product category. Update MarketExplorer component accordingly.
-const PRODUCT_OPTIONS: ProductOption[] = [
-  { id: 'aapl', category: 'stock', ticker: 'AAPL', name: 'Apple Inc.', price: 228.45, sector: 'Technology', region: 'North America', description: 'Mega-cap growth leader' },
-  { id: 'msft', category: 'stock', ticker: 'MSFT', name: 'Microsoft Corp.', price: 417.89, sector: 'Technology', region: 'North America', description: 'Enterprise cloud and software' },
-  { id: 'voo', category: 'etf', ticker: 'VOO', name: 'Vanguard S&P 500 ETF', price: 412.18, sector: 'Diversified Equity', region: 'North America', description: 'Broad equity market exposure' },
-  { id: 'agg', category: 'bond', ticker: 'AGG', name: 'iShares Core Bond ETF', price: 95.75, sector: 'Fixed Income', region: 'North America', description: 'Core fixed-income allocation' },
-  { id: 'alt', category: 'other', ticker: 'ALT', name: 'Private Credit Fund', price: 102.60, sector: 'Alternative Credit', region: 'Europe', description: 'Higher-income alternative sleeve' },
-]
-
 export default function App() {
   const [portfolioId, setPortfolioId] = useState<string | null>(null)
   const [items, setItems] = useState<PortfolioItem[]>([])
@@ -78,12 +56,19 @@ export default function App() {
     sector?: string
     region?: string
   } | null>(null)
-  const [selectedProduct, setSelectedProduct] = useState<{ ticker: string; equity: MarketEquity; product: ProductOption } | null>(null)
   const [activeSale, setActiveSale] = useState<HoldingFluctuation | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
 
   useEffect(() => {
     void loadPortfolio()
+  }, [])
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      void loadPortfolio()
+    }, 60000)
+
+    return () => clearInterval(intervalId)
   }, [])
 
   const loadPortfolio = async () => {
@@ -165,15 +150,6 @@ export default function App() {
   const totalPortfolioValue = portfolioMetrics?.totalValue ?? 0
   const pnl = portfolioMetrics?.pnl ?? { total: 0, byAssetClass: [] }
   const holdings = useMemo(() => getHoldingsFluctuations(items), [items])
-  const marketCatalog = useMemo<MarketEquity[]>(() => PRODUCT_OPTIONS.map(product => ({
-    ticker: product.ticker,
-    name: product.name,
-    sector: product.sector,
-    region: product.region,
-    price: product.price,
-    changePercent: 0,
-    priceHistory: [],
-  })), [])
 
 
   const handleConfirmTrade = async (quantity: number, entryDate?: string, entryPrice?: number) => {
@@ -208,6 +184,7 @@ export default function App() {
           {
             id: uid('item'),
             portfolioId: '1',
+            assetClass: itemType,
             itemType,
             ticker,
             name: activeTrade.name ?? ticker,
@@ -285,15 +262,15 @@ export default function App() {
     setActiveTrade(null)
   }
 
-  const openBuyModal = (product: ProductOption) => {
+  const openBuyModal = (equity: MarketEquity) => {
     setActiveTrade({
       mode: 'buy',
-      ticker: product.ticker,
-      itemType: normaliseItemType(product.category),
-      name: product.name,
-      price: product.price,
-      sector: product.sector,
-      region: product.region,
+      ticker: equity.ticker,
+      itemType: equity.type,
+      name: equity.name,
+      price: equity.price,
+      sector: equity.sector,
+      region: equity.region,
     })
   }
 
@@ -349,25 +326,7 @@ export default function App() {
   }
 
   const handleExplorerBuy = (equity: MarketEquity) => {
-    const product = PRODUCT_OPTIONS.find(option => option.ticker === equity.ticker)
-    if (product) {
-      openBuyModal(product)
-    } else {
-      setToast({ message: `No market product found for ${equity.ticker}.`, type: 'error' })
-    }
-  }
-
-  const normaliseItemType = (category: ProductCategory): PortfolioItem['itemType'] => {
-    switch (category) {
-      case 'bond':
-        return 'bond'
-      case 'etf':
-        return 'etf'
-      case 'other':
-        return 'other'
-      default:
-        return 'stock'
-    }
+    openBuyModal(equity)
   }
 
   if (isLoading) {
@@ -436,7 +395,7 @@ export default function App() {
         )}
 
         <div className="grid gap-6 md:grid-cols-2 mb-8">
-          <AddFlow marketCatalog={marketCatalog} handleExplorerBuy={handleExplorerBuy} />
+          <AddFlow handleExplorerBuy={handleExplorerBuy} />
           <RemoveFlow holdings={holdings} handleSell={openSellModal} />
         </div>
 
@@ -463,26 +422,6 @@ export default function App() {
           holding={activeSale}
           onConfirm={handleRecordSale}
           onClose={() => setActiveSale(null)}
-        />
-      )}
-
-      {selectedProduct && (
-        <ProductDetailModal
-          ticker={selectedProduct.equity.ticker}
-          name={selectedProduct.equity.name}
-          sector={selectedProduct.equity.sector}
-          region={selectedProduct.equity.region}
-          price={selectedProduct.equity.price}
-          changePercent={selectedProduct.equity.changePercent}
-          priceHistory={selectedProduct.equity.priceHistory.length > 0 ? selectedProduct.equity.priceHistory : Array(30).fill(selectedProduct.equity.price)}
-          news={(MOCK_NEWS[selectedProduct.equity.ticker] || []).map((n, i) => ({
-            id: `news-${i}`,
-            title: n.title,
-            source: n.source,
-            date: new Date(Date.now() - i * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-            summary: n.summary,
-          }))}
-          onClose={() => setSelectedProduct(null)}
         />
       )}
 

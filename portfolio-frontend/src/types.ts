@@ -135,6 +135,7 @@ export interface TransactionHistoryFilters {
 export interface MarketEquity {
   ticker: string
   name: string
+  type: 'stock' | 'etf' | 'bond' | 'other'
   sector: string
   region: string
   price: number
