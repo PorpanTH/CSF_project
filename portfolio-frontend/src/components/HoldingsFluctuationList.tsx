@@ -8,7 +8,7 @@ interface HoldingsFluctuationListProps {
   onSell: (holding: HoldingFluctuation) => void
 }
 
-type SortKey = 'ticker' | 'quantity' | 'currentPrice' | 'unrealizedPnl' | 'changePercent'
+type SortKey = 'ticker' | 'quantity' | 'purchasePrice' | 'currentPrice' | 'unrealizedPnl' | 'changePercent'
 type ProductCategory = 'stock' | 'bond' | 'etf' | 'other' | 'all'
 
 type HoldingRow = {
@@ -22,6 +22,10 @@ type HoldingRow = {
   changePercent: number
   unrealizedPnl: number
   priceHistory: number[]
+}
+
+type HoldingAccumulator = HoldingRow & {
+  totalCost: number
 }
 
 const PRODUCT_CATEGORIES: { id: ProductCategory; label: string }[] = [
@@ -50,20 +54,43 @@ export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuatio
           name: holding.name,
           itemType: holding.itemType,
           quantity: 0,
-          purchasePrice: holding.purchasePrice,
+          purchasePrice: 0,
           currentPrice: holding.currentPrice,
-          changePercent: holding.changePercent,
+          changePercent: 0,
           unrealizedPnl: 0,
           priceHistory: holding.priceHistory,
+          totalCost: 0,
         }
       }
 
       acc[key].quantity += holding.quantity
+      acc[key].totalCost += holding.purchasePrice * holding.quantity
+      acc[key].currentPrice = holding.currentPrice
       acc[key].unrealizedPnl += holding.unrealizedPnl
       return acc
-    }, {} as Record<string, HoldingRow>)
+    }, {} as Record<string, HoldingAccumulator>)
 
-    const list = Object.values(grouped).filter((holding) => {
+    const normalized = Object.values(grouped).map((holding) => {
+      const avgCostBasis = holding.quantity > 0 ? holding.totalCost / holding.quantity : 0
+      const changePercent = avgCostBasis > 0
+        ? ((holding.currentPrice - avgCostBasis) / avgCostBasis) * 100
+        : 0
+
+      return {
+        key: holding.key,
+        ticker: holding.ticker,
+        name: holding.name,
+        itemType: holding.itemType,
+        quantity: holding.quantity,
+        purchasePrice: avgCostBasis,
+        currentPrice: holding.currentPrice,
+        changePercent,
+        unrealizedPnl: holding.unrealizedPnl,
+        priceHistory: holding.priceHistory,
+      }
+    })
+
+    const list = normalized.filter((holding) => {
       const matchesSearch = holding.ticker.toLowerCase().includes(q)
       const matchesCategory = category === 'all' || holding.itemType === category
       return matchesSearch && matchesCategory
@@ -154,6 +181,19 @@ export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuatio
                   </div>
                 </th>
                 <th
+                  onClick={() => toggleSort('purchasePrice')}
+                  className={`px-2 py-2 font-medium cursor-pointer select-none transition-colors ${
+                    sortKey === 'purchasePrice' ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-1">
+                    Cost Basis
+                    {sortKey === 'purchasePrice' && (
+                      <ArrowUpDown size={14} className={`transition-transform ${sortDir === 'desc' ? 'rotate-180' : ''}`} />
+                    )}
+                  </div>
+                </th>
+                <th
                   onClick={() => toggleSort('currentPrice')}
                   className={`px-2 py-2 font-medium cursor-pointer select-none transition-colors ${
                     sortKey === 'currentPrice' ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'
@@ -209,6 +249,9 @@ export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuatio
                     </td>
                     <td className="px-2 py-2.5 text-gray-700">{holding.quantity}</td>
                     <td className="px-2 py-2.5 font-medium text-gray-900">
+                      ${holding.purchasePrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td className="px-2 py-2.5 font-medium text-gray-900">
                       ${holding.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="px-2 py-2.5 font-medium" style={{ color }}>
@@ -230,10 +273,10 @@ export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuatio
                 )
               })}
               {filtered.length === 0 && holdings.length > 0 && (
-                <tr><td colSpan={6} className="text-center text-gray-400 py-6">No holdings match your search.</td></tr>
+                <tr><td colSpan={7} className="text-center text-gray-400 py-6">No holdings match your search.</td></tr>
               )}
               {holdings.length === 0 && (
-                <tr><td colSpan={6} className="text-center text-gray-400 py-6">No holdings yet.</td></tr>
+                <tr><td colSpan={7} className="text-center text-gray-400 py-6">No holdings yet.</td></tr>
               )}
             </tbody>
           </table>
