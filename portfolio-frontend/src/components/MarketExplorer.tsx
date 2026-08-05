@@ -6,7 +6,6 @@ import { STATUS, BRAND } from '../theme/colors'
 interface MarketExplorerProps {
   equities: MarketEquity[]
   onBuy: (equity: MarketEquity) => void
-  onDetails?: (equity: MarketEquity) => void
 }
 
 type SortKey = 'name' | 'price' | 'changePercent' | 'sector'
@@ -36,7 +35,7 @@ const getCategoryFromName = (name: string): ProductCategory => {
   return 'stock'
 }
 
-export const MarketExplorer = ({ equities, onBuy, onDetails }: MarketExplorerProps) => {
+export const MarketExplorer = ({ equities, onBuy }: MarketExplorerProps) => {
   const [query, setQuery] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('name')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
@@ -147,12 +146,6 @@ export const MarketExplorer = ({ equities, onBuy, onDetails }: MarketExplorerPro
                     {positive ? '+' : ''}{eq.changePercent.toFixed(2)}%
                   </td>
                   <td className="px-2 py-2.5 text-right flex gap-2 justify-end">
-                    <button
-                      onClick={() => onDetails?.(eq)}
-                      className="px-3 py-1 text-xs font-medium border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-                    >
-                      Details
-                    </button>
                     <button
                       onClick={() => onBuy(eq)}
                       className="px-3 py-1 text-xs font-medium text-white rounded-md"
