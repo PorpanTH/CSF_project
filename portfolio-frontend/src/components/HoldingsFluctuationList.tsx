@@ -199,7 +199,7 @@ export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuatio
               {filtered.map((holding) => {
                 const positive = holding.changePercent >= 0
                 const pnlPositive = holding.unrealizedPnl >= 0
-                const color = positive ? STATUS.good : STATUS.critical
+                const color = positive ? STATUS.goodText : STATUS.critical
 
                 return (
                   <tr key={holding.key} className="border-b border-gray-100 last:border-0 text-left">

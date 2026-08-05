@@ -187,8 +187,8 @@ export const MarketExplorer = ({ onBuy }: MarketExplorerProps) => {
                     <td className="px-2 py-2.5 text-right">
                       <button
                         onClick={() => onBuy(eq)}
-                        className="px-3 py-1 text-xs font-medium text-white rounded-md"
-                        style={{ backgroundColor: BRAND[700] }}
+                        className="px-3 py-1.5 text-xs font-medium text-white rounded-md"
+                        style={{ backgroundColor: STATUS['good'] }}
                       >
                         Buy
                       </button>
