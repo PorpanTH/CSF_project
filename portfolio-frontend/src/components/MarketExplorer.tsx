@@ -169,7 +169,7 @@ export const MarketExplorer = ({ equities, onBuy }: MarketExplorerProps) => {
                       <button
                         onClick={() => onBuy(eq)}
                         className="px-3 py-1.5 text-xs font-medium text-white rounded-md"
-                        style={{ backgroundColor: BRAND[700] }}
+                        style={{ backgroundColor: STATUS['good'] }}
                       >
                         Add
                       </button>
