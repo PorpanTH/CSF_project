@@ -9,7 +9,7 @@ import { Toast } from './components/Toast'
 import { portfolioAPI } from './services/api'
 import {
   getHoldingsFluctuations,
-} from './services/mockData'
+} from './services/holdings.ts'
 import { PortfolioItem, MarketEquity, PortfolioMetrics } from './types'
 import { Header } from './components/Header.tsx'
 
