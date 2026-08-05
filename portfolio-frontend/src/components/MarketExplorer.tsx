@@ -79,8 +79,8 @@ export const MarketExplorer = ({ onBuy }: MarketExplorerProps) => {
 
   const sorted = useMemo(() => {
     return [...results].sort((a, b) => {
-      const av = a[sortKey]
-      const bv = b[sortKey]
+      const av = sortKey === 'name' ? a.ticker : a[sortKey]
+      const bv = sortKey === 'name' ? b.ticker : b[sortKey]
       const cmp = typeof av === 'string' ? av.localeCompare(bv as string) : (av as number) - (bv as number)
       return sortDir === 'asc' ? cmp : -cmp
     })
@@ -96,7 +96,7 @@ export const MarketExplorer = ({ onBuy }: MarketExplorerProps) => {
   }
 
   return (
-    <div className="card">
+    <div className="w-full">
       <div className="flex gap-3 items-center mb-4">
         <div className="relative flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -107,9 +107,6 @@ export const MarketExplorer = ({ onBuy }: MarketExplorerProps) => {
             onChange={(e) => setQuery(e.target.value)}
             className="input-field pl-9 w-full"
           />
-        </div>
-        <div className="rounded-full bg-slate-100 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 whitespace-nowrap">
-          {results.length} products
         </div>
       </div>
 
