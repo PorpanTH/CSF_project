@@ -1,7 +1,7 @@
 export interface PortfolioItem {
   id: string
   portfolioId: string
-  assetClass: string
+  assetClass?: string
   itemType: 'stock' | 'bond' | 'cash' | 'etf' | 'other'
   ticker: string
   name?: string
@@ -76,7 +76,7 @@ export interface PnLByAssetClass {
   pnl: number
 }
 
-export type PnLRange = 'daily' | 'weekly' | 'monthly' | 'ytd'
+export type PnLRange = 'daily' | 'weekly' | 'monthly' | 'ytd' | '1y' | '2y' | '3y'
 
 export interface PnLSeriesPoint {
   date: string

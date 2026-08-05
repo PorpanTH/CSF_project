@@ -290,6 +290,7 @@ export const getHoldingsFluctuations = (items: PortfolioItem[]): HoldingFluctuat
       return {
         ticker: item.ticker,
         itemType: item.itemType,
+        name: item.name ?? item.ticker,
         quantity: item.quantity,
         purchasePrice: item.purchasePrice,
         currentPrice: item.currentPrice,

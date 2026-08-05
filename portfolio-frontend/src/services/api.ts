@@ -2,7 +2,7 @@ import axios from 'axios'
 import { BuyTransactionRequest, Portfolio, PortfolioItem, SellTransactionRequest, TransactionHistoryRecord, TransactionHistoryFilters } from '../types'
 
 const viteEnv = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env
-const API_BASE_URL = viteEnv?.VITE_API_URL || 'http://localhost:5000/api'
+const API_BASE_URL = viteEnv?.VITE_API_URL || '/api'
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
