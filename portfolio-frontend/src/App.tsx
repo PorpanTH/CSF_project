@@ -3,7 +3,7 @@ import { ArrowUpRight, PieChart, Wallet } from 'lucide-react'
 import { PnLOverview } from './components/PnLOverview'
 import { AssetAllocationChart } from './components/AssetAllocationChart'
 import { AccumulatedPnLChart } from './components/AccumulatedPnLChart'
-import { BuyFlow } from './components/BuyFlow'
+import { AddFlow } from './components/AddFlow'
 import { RemoveFlow } from './components/RemoveFlow'
 import { TradeModal } from './components/TradeModal'
 import { SellTransactionModal } from './components/SellTransactionModal'
@@ -369,9 +369,9 @@ export default function App() {
         )}
 
         <div className="grid gap-6 md:grid-cols-2 mb-8">
-          <BuyFlow handleExplorerBuy={handleExplorerBuy} />
-
-          <HoldingsFluctuationList holdings={holdings} onSell={openSellModal} />
+          <AddFlow handleExplorerBuy={handleExplorerBuy} />
+          <RemoveFlow holdings={holdings} handleSell={openSellModal} />
+          {/* <HoldingsFluctuationList holdings={holdings} onSell={openSellModal} /> */}
         </div>
 
         <div className="mb-8">
