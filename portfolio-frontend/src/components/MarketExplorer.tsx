@@ -8,15 +8,8 @@ interface MarketExplorerProps {
   onBuy: (equity: MarketEquity) => void
 }
 
-type SortKey = 'name' | 'price' | 'changePercent' | 'sector'
+type SortKey = 'ticker' | 'price' | 'changePercent' | 'sector'
 type ProductCategory = 'stock' | 'bond' | 'etf' | 'other' | 'all'
-
-const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: 'name', label: 'Name' },
-  { key: 'price', label: 'Price' },
-  { key: 'changePercent', label: '% Change' },
-  { key: 'sector', label: 'Sector' },
-]
 
 const PRODUCT_CATEGORIES: { id: ProductCategory; label: string }[] = [
   { id: 'all', label: 'All Products' },
@@ -37,7 +30,7 @@ const getCategoryFromName = (name: string): ProductCategory => {
 
 export const MarketExplorer = ({ equities, onBuy }: MarketExplorerProps) => {
   const [query, setQuery] = useState('')
-  const [sortKey, setSortKey] = useState<SortKey>('name')
+  const [sortKey, setSortKey] = useState<SortKey>('ticker')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [category, setCategory] = useState<ProductCategory>('all')
 
@@ -96,33 +89,64 @@ export const MarketExplorer = ({ equities, onBuy }: MarketExplorerProps) => {
         ))}
       </div>
 
-      <div className="flex gap-2 mb-3 flex-wrap">
-        <span className="text-xs text-gray-500 self-center mr-1">Sort by:</span>
-        {SORT_OPTIONS.map(opt => (
-          <button
-            key={opt.key}
-            onClick={() => toggleSort(opt.key)}
-            className={`flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
-              sortKey === opt.key ? 'border-transparent text-white' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-            }`}
-            style={sortKey === opt.key ? { backgroundColor: BRAND[700] } : undefined}
-          >
-            {opt.label}
-            {sortKey === opt.key && <ArrowUpDown size={11} />}
-          </button>
-        ))}
-      </div>
-
       <div className="overflow-x-auto">
         <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-gray-500 border-b border-gray-200 sticky top-0 bg-white">
-                <th className="px-2 pb-2 font-medium">Ticker</th>
-                <th className="px-2 pb-2 font-medium">Sector</th>
-                <th className="px-2 pb-2 font-medium">Price</th>
-                <th className="px-2 pb-2 font-medium">% Change</th>
-                <th className="px-2 pb-2 font-medium"></th>
+              <tr className="border-b border-gray-200 sticky top-0 bg-white">
+                <th
+                  onClick={() => toggleSort('ticker')}
+                  className={`px-2 py-2 font-medium cursor-pointer select-none transition-colors ${
+                    sortKey === 'ticker' ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-1">
+                    Ticker
+                    {sortKey === 'ticker' && (
+                      <ArrowUpDown size={14} className={`transition-transform ${sortDir === 'desc' ? 'rotate-180' : ''}`} />
+                    )}
+                  </div>
+                </th>
+                <th
+                  onClick={() => toggleSort('sector')}
+                  className={`px-2 py-2 font-medium cursor-pointer select-none transition-colors ${
+                    sortKey === 'sector' ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-1">
+                    Sector
+                    {sortKey === 'sector' && (
+                      <ArrowUpDown size={14} className={`transition-transform ${sortDir === 'desc' ? 'rotate-180' : ''}`} />
+                    )}
+                  </div>
+                </th>
+                <th
+                  onClick={() => toggleSort('price')}
+                  className={`px-2 py-2 font-medium cursor-pointer select-none transition-colors ${
+                    sortKey === 'price' ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-1">
+                    Price
+                    {sortKey === 'price' && (
+                      <ArrowUpDown size={14} className={`transition-transform ${sortDir === 'desc' ? 'rotate-180' : ''}`} />
+                    )}
+                  </div>
+                </th>
+                <th
+                  onClick={() => toggleSort('changePercent')}
+                  className={`px-2 py-2 font-medium cursor-pointer select-none transition-colors ${
+                    sortKey === 'changePercent' ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-1">
+                    % Change
+                    {sortKey === 'changePercent' && (
+                      <ArrowUpDown size={14} className={`transition-transform ${sortDir === 'desc' ? 'rotate-180' : ''}`} />
+                    )}
+                  </div>
+                </th>
+                <th className="px-2 py-2 font-medium"></th>
               </tr>
             </thead>
             <tbody>
