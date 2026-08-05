@@ -1,15 +1,22 @@
-import { useMemo, useState } from 'react'
-import { Search, ArrowUpDown } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Search, ArrowUpDown, Loader } from 'lucide-react'
 import { MarketEquity } from '../types'
 import { STATUS, BRAND } from '../theme/colors'
+import { marketAPI } from '../services/api'
 
 interface MarketExplorerProps {
-  equities: MarketEquity[]
   onBuy: (equity: MarketEquity) => void
 }
 
-type SortKey = 'ticker' | 'price' | 'changePercent' | 'sector'
+type SortKey = 'relevance' | 'name' | 'price' | 'changePercent'
 type ProductCategory = 'stock' | 'bond' | 'etf' | 'other' | 'all'
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: 'relevance', label: 'Relevance' },
+  { key: 'name', label: 'Name' },
+  { key: 'price', label: 'Price' },
+  { key: 'changePercent', label: '% Day Change' },
+]
 
 const PRODUCT_CATEGORIES: { id: ProductCategory; label: string }[] = [
   { id: 'all', label: 'All Products' },
@@ -19,37 +26,73 @@ const PRODUCT_CATEGORIES: { id: ProductCategory; label: string }[] = [
   { id: 'other', label: 'Alternatives' },
 ]
 
-const getCategoryFromName = (name: string): ProductCategory => {
-  const lower = name.toLowerCase()
-  if (lower.includes('etf') || lower.includes('etp')) return 'etf'
-  if (lower.includes('bond')) return 'bond'
-  if (lower.includes('fund')) return 'other'
-  if (lower.includes('credit')) return 'other'
-  return 'stock'
-}
-
-export const MarketExplorer = ({ equities, onBuy }: MarketExplorerProps) => {
+export const MarketExplorer = ({ onBuy }: MarketExplorerProps) => {
   const [query, setQuery] = useState('')
-  const [sortKey, setSortKey] = useState<SortKey>('ticker')
+  const [results, setResults] = useState<MarketEquity[]>([])
+  const [loading, setLoading] = useState(false)
+  const [sortKey, setSortKey] = useState<SortKey>('relevance')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [category, setCategory] = useState<ProductCategory>('all')
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout>>()
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    const list = equities.filter(eq => {
-      const matchesSearch = !q || eq.ticker.toLowerCase().includes(q) || eq.name.toLowerCase().includes(q)
-      const eqCategory = getCategoryFromName(eq.name)
-      const matchesCategory = category === 'all' || eqCategory === category
-      return matchesSearch && matchesCategory
-    })
-    const sorted = [...list].sort((a, b) => {
+  const fetchAndEnrich = async (searchQuery: string, searchCategory: ProductCategory) => {
+    try {
+      setLoading(true)
+      const symbols = await marketAPI.searchSymbols(searchQuery, searchCategory, 25)
+      if (symbols.length === 0) {
+        setResults([])
+        return
+      }
+
+      const tickers = symbols.map(s => s.ticker)
+      const quotes = await marketAPI.getQuotes(tickers)
+
+      const enriched: MarketEquity[] = symbols.map(symbol => ({
+        ticker: symbol.ticker,
+        name: symbol.name,
+        type: symbol.type as 'stock' | 'etf' | 'bond' | 'other',
+        price: quotes[symbol.ticker]?.price ?? 0,
+        changePercent: quotes[symbol.ticker]?.dayChangePercent ?? 0,
+        priceHistory: [],
+      }))
+
+      setResults(enriched)
+    } catch (error) {
+      console.error('Search failed:', error)
+      setResults([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Initial load: fetch default products
+  useEffect(() => {
+    fetchAndEnrich('', 'all')
+  }, [])
+
+  // Debounced search when user types
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+
+    if (!query.trim()) {
+      return
+    }
+
+    debounceTimerRef.current = setTimeout(async () => {
+      await fetchAndEnrich(query, category)
+    }, 300)
+  }, [query, category])
+
+  const sorted = sortKey === 'relevance'
+    ? [...results]
+    : [...results].sort((a, b) => {
       const av = a[sortKey]
       const bv = b[sortKey]
       const cmp = typeof av === 'string' ? av.localeCompare(bv as string) : (av as number) - (bv as number)
       return sortDir === 'asc' ? cmp : -cmp
     })
-    return sorted
-  }, [equities, query, sortKey, sortDir, category])
 
   const toggleSort = (key: SortKey) => {
     if (key === sortKey) {
@@ -61,16 +104,19 @@ export const MarketExplorer = ({ equities, onBuy }: MarketExplorerProps) => {
   }
 
   return (
-    <div>
-      <div className="relative mb-4">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Search by ticker or name..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="input-field pl-9 w-full"
-        />
+    <div className="card">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        <h3 className="text-lg font-bold text-gray-900">Search Equities</h3>
+        <div className="relative">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search by ticker or name..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="input-field pl-9 w-full sm:w-72"
+          />
+        </div>
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
@@ -89,100 +135,79 @@ export const MarketExplorer = ({ equities, onBuy }: MarketExplorerProps) => {
         ))}
       </div>
 
-      <div className="overflow-x-auto">
-        <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 sticky top-0 bg-white">
-                <th
-                  onClick={() => toggleSort('ticker')}
-                  className={`px-2 py-2 font-medium cursor-pointer select-none transition-colors ${
-                    sortKey === 'ticker' ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <div className="flex items-center gap-1">
-                    Ticker
-                    {sortKey === 'ticker' && (
-                      <ArrowUpDown size={14} className={`transition-transform ${sortDir === 'desc' ? 'rotate-180' : ''}`} />
-                    )}
-                  </div>
-                </th>
-                <th
-                  onClick={() => toggleSort('sector')}
-                  className={`px-2 py-2 font-medium cursor-pointer select-none transition-colors ${
-                    sortKey === 'sector' ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <div className="flex items-center gap-1">
-                    Sector
-                    {sortKey === 'sector' && (
-                      <ArrowUpDown size={14} className={`transition-transform ${sortDir === 'desc' ? 'rotate-180' : ''}`} />
-                    )}
-                  </div>
-                </th>
-                <th
-                  onClick={() => toggleSort('price')}
-                  className={`px-2 py-2 font-medium cursor-pointer select-none transition-colors ${
-                    sortKey === 'price' ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <div className="flex items-center gap-1">
-                    Price
-                    {sortKey === 'price' && (
-                      <ArrowUpDown size={14} className={`transition-transform ${sortDir === 'desc' ? 'rotate-180' : ''}`} />
-                    )}
-                  </div>
-                </th>
-                <th
-                  onClick={() => toggleSort('changePercent')}
-                  className={`px-2 py-2 font-medium cursor-pointer select-none transition-colors ${
-                    sortKey === 'changePercent' ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <div className="flex items-center gap-1">
-                    % Change
-                    {sortKey === 'changePercent' && (
-                      <ArrowUpDown size={14} className={`transition-transform ${sortDir === 'desc' ? 'rotate-180' : ''}`} />
-                    )}
-                  </div>
-                </th>
-                <th className="px-2 py-2 font-medium"></th>
-              </tr>
+      <div className="flex gap-2 mb-3 flex-wrap">
+        <span className="text-xs text-gray-500 self-center mr-1">Sort by:</span>
+        {SORT_OPTIONS.map(opt => (
+          <button
+            key={opt.key}
+            onClick={() => toggleSort(opt.key)}
+            className={`flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
+              sortKey === opt.key ? 'border-transparent text-white' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+            }`}
+            style={sortKey === opt.key ? { backgroundColor: BRAND[700] } : undefined}
+          >
+            {opt.label}
+            {sortKey === opt.key && <ArrowUpDown size={11} />}
+          </button>
+        ))}
+      </div>
+
+      <div className="overflow-x-auto -mx-2">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-gray-500 border-b border-gray-200">
+              <th className="px-2 pb-2 font-medium">Ticker</th>
+              <th className="px-2 pb-2 font-medium text-right">Price</th>
+              <th className="px-2 pb-2 font-medium text-right">% Day Change</th>
+              <th className="px-2 pb-2 font-medium text-right"></th>
+            </tr>
             </thead>
-            <tbody>
-              {filtered.map(eq => {
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={4} className="text-center text-gray-400 py-6">
+                  <Loader size={16} className="inline animate-spin mr-2" />
+                  Searching...
+                </td>
+              </tr>
+            ) : sorted.length > 0 ? (
+              sorted.map(eq => {
                 const positive = eq.changePercent >= 0
                 return (
-                  <tr key={eq.ticker} className="border-b border-gray-100 last:border-0 text-left">
+                  <tr key={eq.ticker} className="border-b border-gray-100 last:border-0">
                     <td className="px-2 py-2.5">
                       <p className="font-semibold text-gray-900">{eq.ticker}</p>
                       <p className="text-xs text-gray-500">{eq.name}</p>
                     </td>
-                    <td className="px-2 py-2.5 text-gray-700">{eq.sector}</td>
-                    <td className="px-2 py-2.5 font-medium text-gray-900">
+                    <td className="px-2 py-2.5 text-right font-medium text-gray-900">
                       ${eq.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="px-2 py-2.5 font-medium" style={{ color: positive ? STATUS.goodText : STATUS.critical }}>
+                    <td className="px-2 py-2.5 text-right font-medium" style={{ color: positive ? STATUS.goodText : STATUS.critical }}>
                       {positive ? '+' : ''}{eq.changePercent.toFixed(2)}%
                     </td>
-                    <td className="px-2 py-2.5 flex gap-2 justify-end">
+                    <td className="px-2 py-2.5 text-right">
                       <button
                         onClick={() => onBuy(eq)}
-                        className="px-3 py-1.5 text-xs font-medium text-white rounded-md"
+                        className="px-3 py-1 text-xs font-medium text-white rounded-md"
                         style={{ backgroundColor: BRAND[700] }}
                       >
-                        Add
+                        Buy
                       </button>
                     </td>
                   </tr>
                 )
-              })}
-              {filtered.length === 0 && (
-                <tr><td colSpan={5} className="text-center text-gray-400 py-6">No equities match your search.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              })
+            ) : query.trim() ? (
+              <tr>
+                <td colSpan={4} className="text-center text-gray-400 py-6">No results found.</td>
+              </tr>
+            ) : (
+              <tr>
+                <td colSpan={4} className="text-center text-gray-400 py-6">Type a ticker or company name to search NYSE-listed securities</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   )

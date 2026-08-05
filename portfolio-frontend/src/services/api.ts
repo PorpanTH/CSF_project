@@ -72,4 +72,18 @@ export const portfolioAPI = {
   },
 }
 
+export const marketAPI = {
+  searchSymbols: async (query: string, category: string = 'all', limit: number = 25): Promise<Array<{ticker: string; name: string; type: string}>> => {
+    const response = await apiClient.get('/market/symbols', {
+      params: { q: query, category, limit }
+    })
+    return response.data
+  },
+
+  getQuotes: async (tickers: string[]): Promise<Record<string, {price: number; dayChangePercent: number}>> => {
+    const response = await apiClient.post('/market/quotes', { tickers })
+    return response.data
+  },
+}
+
 export default apiClient

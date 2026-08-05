@@ -133,8 +133,7 @@ export interface TransactionHistoryFilters {
 export interface MarketEquity {
   ticker: string
   name: string
-  sector: string
-  region: string
+  type: 'stock' | 'etf' | 'bond' | 'other'
   price: number
   changePercent: number
   priceHistory: number[]

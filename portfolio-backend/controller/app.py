@@ -142,9 +142,11 @@ def create_app():
     # Register blueprints
     from routes.auth import auth_bp
     from routes.portfolios import portfolio_bp
+    from routes.market import market_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(portfolio_bp, url_prefix='/api')
+    app.register_blueprint(market_bp, url_prefix='/api/market')
 
     # Health check endpoint
     @app.route('/api/health', methods=['GET'])
