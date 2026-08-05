@@ -72,9 +72,9 @@ export const TradeModal = ({ mode, ticker, name, price, maxQuantity, availableBa
               onClick={() => !error && onConfirm(quantity)}
               disabled={!!error}
               className="flex-1 btn text-white disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ backgroundColor: mode === 'buy' ? BRAND[700] : STATUS.good }}
+              style={{ backgroundColor: mode === 'buy' ? STATUS.good : BRAND[700]}}
             >
-              Confirm {mode === 'buy' ? 'Buy' : 'Sell'}
+              Confirm {mode === 'buy' ? 'Add' : 'Remove'}
             </button>
             <button onClick={onClose} className="flex-1 btn-secondary">Cancel</button>
           </div>
