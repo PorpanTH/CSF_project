@@ -5,7 +5,6 @@ import { AccumulatedPnLChart } from './components/AccumulatedPnLChart'
 import { HoldingsFluctuationList } from './components/HoldingsFluctuationList'
 import { MarketExplorer } from './components/MarketExplorer'
 import { TradeModal } from './components/TradeModal'
-import { ProductDetailModal } from './components/ProductDetailModal'
 import { Toast } from './components/Toast'
 import { portfolioAPI } from './services/api'
 import {
@@ -51,94 +50,7 @@ const findMatchingHolding = (
   itemType: PortfolioItem['itemType'],
 ) => holdings.find(holding => holding.ticker.toUpperCase() === ticker.toUpperCase() && holding.itemType === itemType)
 
-const MOCK_NEWS: Record<string, { title: string; source: string; summary: string }[]> = {
-  AAPL: [
-    {
-      title: 'Apple Announces New AI Features for iPhone 16',
-      source: 'TechCrunch',
-      summary: 'Apple revealed groundbreaking on-device AI capabilities that will power the next generation of iPhone models, focusing on privacy and performance.',
-    },
-    {
-      title: 'Q3 Earnings Beat Expectations Amid Strong Mac Sales',
-      source: 'Bloomberg',
-      summary: 'Apple reported record quarterly earnings driven by strong demand for MacBook Pro and iPad Pro. Services revenue also showed growth.',
-    },
-    {
-      title: 'Apple Watch Gets Health Monitoring Upgrade',
-      source: 'MacRumors',
-      summary: 'The latest Apple Watch update introduces advanced heart monitoring and sleep tracking features approved by regulatory bodies.',
-    },
-  ],
-  MSFT: [
-    {
-      title: 'Microsoft Expands Azure AI Services',
-      source: 'Seeking Alpha',
-      summary: 'Microsoft announced expanded Azure AI capabilities, integrating OpenAI models more deeply into enterprise offerings.',
-    },
-    {
-      title: 'Strong Cloud Growth Drives Revenue Beat',
-      source: 'MarketWatch',
-      summary: 'Microsoft Cloud revenue jumped 28% YoY, surpassing analyst expectations and driving stock gains.',
-    },
-    {
-      title: 'Windows 12 Preview Released to Developers',
-      source: 'Ars Technica',
-      summary: 'Microsoft released the first preview build of Windows 12 with AI-powered features and performance improvements.',
-    },
-  ],
-  VOO: [
-    {
-      title: 'S&P 500 Reaches New All-Time High',
-      source: 'CNBC',
-      summary: 'The S&P 500 index closed at record levels as tech stocks lead the market rally.',
-    },
-    {
-      title: 'Vanguard Reports Strong Fund Inflows',
-      source: 'Reuters',
-      summary: 'Vanguard saw significant inflows into its S&P 500 tracking funds as investors seek broad market exposure.',
-    },
-    {
-      title: 'Market Analysis: Will Tech Dominance Continue?',
-      source: 'The Wall Street Journal',
-      summary: 'Analysts debate whether technology companies will continue driving market gains in the coming quarters.',
-    },
-  ],
-  AGG: [
-    {
-      title: 'Bond Market Stabilizes as Rate Outlook Shifts',
-      source: 'Financial Times',
-      summary: 'The broader bond market showed resilience as investors reassessed expectations for future interest rate cuts.',
-    },
-    {
-      title: 'iShares Core Bond ETF Attracts Record Assets',
-      source: 'Yahoo Finance',
-      summary: 'The AGG ETF surpassed $300 billion in assets under management, reflecting strong investor demand for fixed-income exposure.',
-    },
-    {
-      title: 'Credit Spreads Narrow on Economic Optimism',
-      source: 'Trading Economics',
-      summary: 'Investment-grade credit spreads tightened as corporate earnings reports beat expectations.',
-    },
-  ],
-  ALT: [
-    {
-      title: 'Alternative Credit Funds Outperform Traditional Bonds',
-      source: 'Institutional Investor',
-      summary: 'Alternative credit strategies delivered strong returns in the first half of 2024, outpacing traditional fixed income.',
-    },
-    {
-      title: 'Private Credit Market Continues to Expand',
-      source: 'Private Equity News',
-      summary: 'The alternative credit market reached new size milestones as institutional investors increase allocations.',
-    },
-    {
-      title: 'Risk Management in Alternative Investing',
-      source: 'Harvard Business Review',
-      summary: 'A comprehensive look at how sophisticated investors manage risk in alternative credit portfolios.',
-    },
-  ],
-}
-
+// Need to implement search bar and show actual equity list for each product category. Update MarketExplorer component accordingly.
 const PRODUCT_OPTIONS: ProductOption[] = [
   { id: 'aapl', category: 'stock', ticker: 'AAPL', name: 'Apple Inc.', price: 228.45, sector: 'Technology', region: 'North America', description: 'Mega-cap growth leader' },
   { id: 'msft', category: 'stock', ticker: 'MSFT', name: 'Microsoft Corp.', price: 417.89, sector: 'Technology', region: 'North America', description: 'Enterprise cloud and software' },
@@ -163,7 +75,6 @@ export default function App() {
     sector?: string
     region?: string
   } | null>(null)
-  const [selectedProduct, setSelectedProduct] = useState<{ ticker: string; equity: MarketEquity; product: ProductOption } | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
 
   useEffect(() => {
@@ -392,15 +303,6 @@ export default function App() {
     }
   }
 
-  const handleProductDetails = (equity: MarketEquity) => {
-    const product = PRODUCT_OPTIONS.find(option => option.ticker === equity.ticker)
-    if (product) {
-      setSelectedProduct({ ticker: equity.ticker, equity, product })
-    } else {
-      setToast({ message: `No details available for ${equity.ticker}.`, type: 'error' })
-    }
-  }
-
   const normaliseItemType = (category: ProductCategory): PortfolioItem['itemType'] => {
     switch (category) {
       case 'bond':
@@ -480,7 +382,7 @@ export default function App() {
             </div>
 
             <div className="mt-6 overflow-y-auto flex-1" style={{ maxHeight: '600px' }}>
-              <MarketExplorer equities={marketCatalog} onBuy={handleExplorerBuy} onDetails={handleProductDetails} />
+              <MarketExplorer equities={marketCatalog} onBuy={handleExplorerBuy} />
             </div>
           </div>
 
@@ -498,26 +400,6 @@ export default function App() {
           availableBalance={activeTrade.availableBalance}
           onConfirm={handleConfirmTrade}
           onClose={() => setActiveTrade(null)}
-        />
-      )}
-
-      {selectedProduct && (
-        <ProductDetailModal
-          ticker={selectedProduct.equity.ticker}
-          name={selectedProduct.equity.name}
-          sector={selectedProduct.equity.sector}
-          region={selectedProduct.equity.region}
-          price={selectedProduct.equity.price}
-          changePercent={selectedProduct.equity.changePercent}
-          priceHistory={selectedProduct.equity.priceHistory.length > 0 ? selectedProduct.equity.priceHistory : Array(30).fill(selectedProduct.equity.price)}
-          news={(MOCK_NEWS[selectedProduct.equity.ticker] || []).map((n, i) => ({
-            id: `news-${i}`,
-            title: n.title,
-            source: n.source,
-            date: new Date(Date.now() - i * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-            summary: n.summary,
-          }))}
-          onClose={() => setSelectedProduct(null)}
         />
       )}
 
