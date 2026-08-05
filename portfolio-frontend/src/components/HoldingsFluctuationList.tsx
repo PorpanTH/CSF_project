@@ -213,7 +213,7 @@ export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuatio
                   }`}
                 >
                   <div className="flex items-center gap-1">
-                    % Change
+                    % Day Change
                     {sortKey === 'changePercent' && (
                       <ArrowUpDown size={14} className={`transition-transform ${sortDir === 'desc' ? 'rotate-180' : ''}`} />
                     )}
@@ -245,7 +245,7 @@ export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuatio
                   <tr key={holding.key} className="border-b border-gray-100 last:border-0 text-left">
                     <td className="px-2 py-2.5">
                       <p className="font-semibold text-gray-900">{holding.ticker}</p>
-                      <p className="text-xs text-gray-500 uppercase">{holding.name}</p>
+                      <p className="text-xs text-gray-500 capitalize">{holding.name}</p>
                     </td>
                     <td className="px-2 py-2.5 text-gray-700">{holding.quantity}</td>
                     <td className="px-2 py-2.5 font-medium text-gray-900">
