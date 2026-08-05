@@ -114,49 +114,51 @@ export const MarketExplorer = ({ equities, onBuy }: MarketExplorerProps) => {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-gray-500 border-b border-gray-200">
-              <th className="px-2 pb-2 font-medium">Ticker</th>
-              <th className="px-2 pb-2 font-medium">Sector</th>
-              <th className="px-2 pb-2 font-medium">Price</th>
-              <th className="px-2 pb-2 font-medium">% Change</th>
-              <th className="px-2 pb-2 font-medium"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map(eq => {
-              const positive = eq.changePercent >= 0
-              return (
-                <tr key={eq.ticker} className="border-b border-gray-100 last:border-0 text-left">
-                  <td className="px-2 py-2.5">
-                    <p className="font-semibold text-gray-900">{eq.ticker}</p>
-                    <p className="text-xs text-gray-500">{eq.name}</p>
-                  </td>
-                  <td className="px-2 py-2.5 text-gray-700">{eq.sector}</td>
-                  <td className="px-2 py-2.5 font-medium text-gray-900">
-                    ${eq.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  </td>
-                  <td className="px-2 py-2.5 font-medium" style={{ color: positive ? STATUS.goodText : STATUS.critical }}>
-                    {positive ? '+' : ''}{eq.changePercent.toFixed(2)}%
-                  </td>
-                  <td className="px-2 py-2.5 flex gap-2 justify-end">
-                    <button
-                      onClick={() => onBuy(eq)}
-                      className="px-3 py-1.5 text-xs font-medium text-white rounded-md"
-                      style={{ backgroundColor: BRAND[700] }}
-                    >
-                      Add
-                    </button>
-                  </td>
-                </tr>
-              )
-            })}
-            {filtered.length === 0 && (
-              <tr><td colSpan={6} className="text-center text-gray-400 py-6">No equities match your search.</td></tr>
-            )}
-          </tbody>
-        </table>
+        <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-gray-500 border-b border-gray-200 sticky top-0 bg-white">
+                <th className="px-2 pb-2 font-medium">Ticker</th>
+                <th className="px-2 pb-2 font-medium">Sector</th>
+                <th className="px-2 pb-2 font-medium">Price</th>
+                <th className="px-2 pb-2 font-medium">% Change</th>
+                <th className="px-2 pb-2 font-medium"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(eq => {
+                const positive = eq.changePercent >= 0
+                return (
+                  <tr key={eq.ticker} className="border-b border-gray-100 last:border-0 text-left">
+                    <td className="px-2 py-2.5">
+                      <p className="font-semibold text-gray-900">{eq.ticker}</p>
+                      <p className="text-xs text-gray-500">{eq.name}</p>
+                    </td>
+                    <td className="px-2 py-2.5 text-gray-700">{eq.sector}</td>
+                    <td className="px-2 py-2.5 font-medium text-gray-900">
+                      ${eq.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="px-2 py-2.5 font-medium" style={{ color: positive ? STATUS.goodText : STATUS.critical }}>
+                      {positive ? '+' : ''}{eq.changePercent.toFixed(2)}%
+                    </td>
+                    <td className="px-2 py-2.5 flex gap-2 justify-end">
+                      <button
+                        onClick={() => onBuy(eq)}
+                        className="px-3 py-1.5 text-xs font-medium text-white rounded-md"
+                        style={{ backgroundColor: BRAND[700] }}
+                      >
+                        Add
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+              {filtered.length === 0 && (
+                <tr><td colSpan={5} className="text-center text-gray-400 py-6">No equities match your search.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )
