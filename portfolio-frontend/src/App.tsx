@@ -127,6 +127,7 @@ export default function App() {
       const payload = {
         itemType: item.itemType,
         ticker: item.ticker,
+        name: item.name,
         quantity: item.quantity,
         purchasePrice: item.purchasePrice,
         purchaseDate: item.purchaseDate,
@@ -209,6 +210,7 @@ export default function App() {
             portfolioId: '1',
             itemType,
             ticker,
+            name: activeTrade.name ?? ticker,
             quantity,
             purchasePrice: buyPrice,
             purchaseDate: buyDate,
@@ -295,14 +297,29 @@ export default function App() {
     })
   }
 
-  const openSellModal = (holding: HoldingFluctuation) => {
-    const item = items.find(i => i.ticker === holding.ticker && i.itemType === holding.itemType)
+  const openSellModal = (ticker: string) => {
+    const holding = holdings.find(h => h.ticker === ticker)
+    const item = holding
+      ? items.find(i => i.ticker === holding.ticker && i.itemType === holding.itemType)
+      : items.find(i => i.ticker === ticker && i.itemType !== 'cash')
     if (!item) {
       setToast({ message: 'No holding found for this security.', type: 'error' })
       return
     }
 
-    setActiveSale({ ...holding, quantity: item.quantity, currentPrice: item.currentPrice })
+    const selectedHolding: HoldingFluctuation = holding ?? {
+      ticker: item.ticker,
+      name: item.name,
+      itemType: item.itemType,
+      quantity: item.quantity,
+      purchasePrice: item.purchasePrice,
+      currentPrice: item.currentPrice,
+      changePercent: 0,
+      unrealizedPnl: (item.currentPrice - item.purchasePrice) * item.quantity,
+      priceHistory: item.priceHistory,
+    }
+
+    setActiveSale({ ...selectedHolding, quantity: item.quantity, currentPrice: item.currentPrice })
   }
 
   const handleRecordSale = async (saleDate: string, soldPrice: number, quantity: number) => {

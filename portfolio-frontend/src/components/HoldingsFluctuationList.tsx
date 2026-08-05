@@ -33,6 +33,7 @@ export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuatio
         acc[key] = {
           ticker: holding.ticker,
           name: holding.name,
+          itemType: holding.itemType,
           quantity: 0,
           currentPrice: holding.currentPrice,
           changePercent: holding.changePercent,
@@ -45,6 +46,7 @@ export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuatio
     }, {} as Record<string, {
       ticker: string
       name: string
+      itemType: 'stock' | 'bond' | 'cash' | 'etf' | 'other'
       quantity: number
       currentPrice: number
       changePercent: number
@@ -52,7 +54,9 @@ export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuatio
     }>)
 
     const list = Object.values(grouped).filter((holding) => {
-      return holding.ticker.toLowerCase().includes(q) || holding.name.toLowerCase().includes(q)
+      const matchesSearch = holding.ticker.toLowerCase().includes(q) || holding.name.toLowerCase().includes(q)
+      const matchesCategory = category === 'all' || holding.itemType === category
+      return matchesSearch && matchesCategory
     })
 
     return [...list].sort((a, b) => {
@@ -61,7 +65,7 @@ export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuatio
       const cmp = typeof av === 'string' ? av.localeCompare(bv as string) : (av as number) - (bv as number)
       return sortDir === 'asc' ? cmp : -cmp
     })
-  }, [holdings, query, sortKey, sortDir])
+  }, [holdings, query, sortKey, sortDir, category])
 
   const toggleSort = (key: SortKey) => {
     if (key === sortKey) {
