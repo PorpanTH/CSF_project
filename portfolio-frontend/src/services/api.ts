@@ -75,14 +75,59 @@ export const portfolioAPI = {
 export const marketAPI = {
   searchSymbols: async (query: string, category: string = 'all', limit: number = 25): Promise<Array<{ticker: string; name: string; type: string}>> => {
     const response = await apiClient.get('/market/symbols', {
-      params: { q: query, category, limit }
+      params: { q: query, query, category, limit }
     })
-    return response.data
+
+    const rawList = Array.isArray(response.data)
+      ? response.data
+      : response.data?.results || response.data?.symbols || response.data?.data || []
+
+    if (!Array.isArray(rawList)) {
+      return []
+    }
+
+    return rawList
+      .map((item) => {
+        const ticker = String(item?.ticker || item?.symbol || item?.code || '').toUpperCase().trim()
+        const name = String(item?.name || item?.companyName || item?.company_name || item?.description || ticker).trim()
+        const type = String(item?.type || item?.assetClass || item?.asset_class || 'stock').toLowerCase()
+        const normalizedType = ['stock', 'bond', 'etf', 'other'].includes(type) ? type : 'stock'
+        return { ticker, name, type: normalizedType }
+      })
+      .filter((item) => item.ticker)
   },
 
   getQuotes: async (tickers: string[]): Promise<Record<string, {price: number; dayChangePercent: number}>> => {
-    const response = await apiClient.post('/market/quotes', { tickers })
-    return response.data
+    const response = await apiClient.post('/market/quotes', {
+      tickers,
+      symbols: tickers,
+    })
+
+    const rawQuotes = response.data?.quotes || response.data || {}
+    if (!rawQuotes || typeof rawQuotes !== 'object' || Array.isArray(rawQuotes)) {
+      return {}
+    }
+
+    return Object.entries(rawQuotes).reduce((acc, [rawTicker, rawQuote]) => {
+      const quote = (rawQuote || {}) as Record<string, unknown>
+      const priceRaw = quote.price ?? quote.currentPrice ?? quote.lastPrice ?? quote.close
+      const changeRaw =
+        quote.dayChangePercent ??
+        quote.day_change_percent ??
+        quote.changePercent ??
+        quote.percentChange ??
+        quote.pctChange
+
+      const price = Number(priceRaw)
+      const dayChangePercent = Number(changeRaw)
+
+      acc[String(rawTicker).toUpperCase()] = {
+        price: Number.isFinite(price) ? price : 0,
+        dayChangePercent: Number.isFinite(dayChangePercent) ? dayChangePercent : 0,
+      }
+
+      return acc
+    }, {} as Record<string, { price: number; dayChangePercent: number }>)
   },
 }
 
