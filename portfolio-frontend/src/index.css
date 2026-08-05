@@ -8,32 +8,33 @@
   }
 
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-[#f8f5f0] text-zinc-950 antialiased;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
   }
 }
 
 @layer components {
   .card {
-    @apply bg-white rounded-lg shadow-sm p-6;
+    @apply rounded-[28px] border border-black/10 bg-white p-6 shadow-[0_12px_40px_rgba(0,0,0,0.06)];
   }
 
   .btn {
-    @apply px-4 py-2 rounded-lg font-medium transition-colors duration-200;
+    @apply px-4 py-2 rounded-xl font-medium transition-all duration-200;
   }
 
   .btn-primary {
-    @apply btn bg-blue-600 text-white hover:bg-blue-700;
+    @apply btn bg-[#b91c1c] text-white hover:bg-[#991b1b];
   }
 
   .btn-secondary {
-    @apply btn bg-gray-200 text-gray-900 hover:bg-gray-300;
+    @apply btn bg-zinc-100 text-zinc-900 hover:bg-zinc-200;
   }
 
   .btn-danger {
-    @apply btn bg-red-600 text-white hover:bg-red-700;
+    @apply btn bg-[#b91c1c] text-white hover:bg-[#991b1b];
   }
 
   .input-field {
-    @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+    @apply w-full px-4 py-2.5 border border-zinc-300 rounded-xl bg-white text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#b91c1c]/30 focus:border-[#b91c1c];
   }
 }

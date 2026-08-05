@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer } from 'recharts'
 import { PnLRange } from '../types'
 import { STATUS, INK, BRAND } from '../theme/colors'
-import { TrendingUp, TrendingDown } from 'lucide-react'
+import { TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react'
 
 interface AccumulatedPnLChartProps {
   portfolioId: string
@@ -37,7 +37,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null
 }
 
-export const AccumulatedPnLChart = ({ portfolioId, endValue }: AccumulatedPnLChartProps) => {
+export const AccumulatedPnLChart = ({ portfolioId }: AccumulatedPnLChartProps) => {
   const [range, setRange] = useState<PnLRange>('ytd')
   const [data, setData] = useState<PnLDataPoint[]>([])
   const [loading, setLoading] = useState(false)
@@ -114,22 +114,28 @@ export const AccumulatedPnLChart = ({ portfolioId, endValue }: AccumulatedPnLCha
       <div className="flex-1 flex flex-col min-h-0">
         {loading && (
           <div className="flex-1 flex flex-col items-center justify-center text-gray-500 gap-3">
-            <div className="w-8 h-8 border-3 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
-            <p className="text-sm font-medium">Loading chart data...</p>
+            <div className="w-8 h-8 border-3 border-gray-300 border-t-[#b91c1c] rounded-full animate-spin" />
+            <p className="text-sm font-medium">Loading chart data…</p>
           </div>
         )}
 
         {error && (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3 bg-red-50 rounded-lg border border-red-200">
-            <p className="text-red-600 font-medium">⚠️ Unable to load chart</p>
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 bg-red-50 rounded-[24px] border border-red-200">
+            <div className="rounded-full bg-red-100 p-2 text-[#b91c1c]">
+              <AlertTriangle size={18} />
+            </div>
+            <p className="text-[#b91c1c] font-medium">Unable to load chart</p>
             <p className="text-sm text-red-500">{error}</p>
           </div>
         )}
 
         {!loading && !error && data.length === 0 && (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3 bg-blue-50 rounded-lg border border-blue-200">
-            <p className="text-blue-600 font-medium">📊 No historical data yet</p>
-            <p className="text-sm text-blue-500">Start recording daily snapshots to build your P/L chart</p>
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 bg-[#fff7f7] rounded-[24px] border border-[#f5c3c3]">
+            <div className="rounded-full bg-red-100 p-2 text-[#b91c1c]">
+              {/* <ChartNoAxesCombined size={18} /> */}
+            </div>
+            <p className="text-[#991b1b] font-medium">No historical data yet</p>
+            <p className="text-sm text-[#9a5d5d]">Start recording daily snapshots to build your P/L chart</p>
           </div>
         )}
 

@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowUpRight, PieChart, Wallet } from 'lucide-react'
+import {
+  ArrowUpRight,
+  LayoutDashboard,
+  ArrowLeftRight,
+  History,
+  PieChart,
+  Wallet,
+  ShieldCheck,
+} from 'lucide-react'
 import { PnLOverview } from './components/PnLOverview'
 import { AssetAllocationChart } from './components/AssetAllocationChart'
 import { TimeWeightedReturnChart } from './components/TimeWeightedReturnChart'
@@ -17,6 +25,11 @@ import { HoldingFluctuation, PortfolioItem, MarketEquity, PortfolioMetrics } fro
 import { Header } from './components/Header.tsx'
 
 const uid = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+const tabs = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'flow', label: 'Add & Remove', icon: ArrowLeftRight },
+  { id: 'history', label: 'Transaction History', icon: History },
+] as const
 
 const calculateWeightedAveragePurchasePrice = (
   currentPurchasePrice: number,
@@ -45,6 +58,7 @@ export default function App() {
   const [items, setItems] = useState<PortfolioItem[]>([])
   const [portfolioMetrics, setPortfolioMetrics] = useState<PortfolioMetrics | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<(typeof tabs)[number]['id']>('dashboard')
   const [activeTrade, setActiveTrade] = useState<{
     mode: 'buy' | 'sell'
     ticker: string
@@ -142,7 +156,6 @@ export default function App() {
   const totalPortfolioValue = portfolioMetrics?.totalValue ?? 0
   const pnl = portfolioMetrics?.pnl ?? { total: 0, byAssetClass: [] }
   const holdings = useMemo(() => getHoldingsFluctuations(items), [items])
-
 
   const handleConfirmTrade = async (quantity: number, entryDate?: string, entryPrice?: number) => {
     if (!activeTrade) return
@@ -298,6 +311,8 @@ export default function App() {
       itemType: equity.type,
       name: equity.name,
       price: equity.price,
+      maxQuantity: undefined,
+      availableBalance: undefined,
       sector: equity.type === 'etf' ? 'Diversified Equity' : 'Technology',
       region: 'United States',
     })
@@ -305,53 +320,78 @@ export default function App() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 text-slate-700">
-        Loading portfolio from backend…
+      <div className="min-h-screen flex items-center justify-center bg-[#f8f5f0] text-zinc-900">
+        <div className="rounded-[28px] border border-black/10 bg-white px-8 py-5 shadow-[0_18px_48px_rgba(0,0,0,0.08)]">
+          <p className="text-sm font-semibold uppercase tracking-[0.32em] text-[#991b1b]">Loading portfolio</p>
+          <p className="mt-2 text-base text-zinc-700">Loading portfolio from backend…</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#f8f5f0] text-zinc-950">
       <Header />
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h1 className="text-4xl font-bold text-gray-900 mt-2">Investment Portfolio</h1>
-          </div>
-        </div>
+      <main className="w-full px-4 py-8 sm:px-6 lg:px-8">
+        <section className="min-h-[calc(100vh-6rem)] rounded-[32px] border border-black/10 bg-white p-4 shadow-[0_18px_60px_rgba(0,0,0,0.08)] sm:p-6">
+          <div className="grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)]">
+            <aside className="flex min-h-[calc(100vh-10rem)] flex-col rounded-[28px] bg-[#111111] p-3 shadow-[0_12px_35px_rgba(0,0,0,0.22)]">
+              <div className="mb-3 rounded-[22px] border border-white/10 bg-white/5 p-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-zinc-400">Portfolio control</p>
+                <p className="mt-1 text-sm font-semibold text-white">King Kong command deck</p>
+              </div>
+              <div className="space-y-2">
+                {tabs.map(tab => {
+                  const Icon = tab.icon
+                  const isActive = activeTab === tab.id
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 mb-8">
-          <div className="rounded-3xl border border-slate-200 bg-white p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Net asset value</p>
-                <p className="text-2xl font-semibold text-gray-900 mt-2">${totalPortfolioValue.toLocaleString('en-US', { minimumFractionDigits: 0 })}</p>
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex w-full items-center gap-3 rounded-[20px] px-4 py-3 text-left text-sm font-semibold transition-all duration-200 ${
+                        isActive
+                          ? 'bg-[#b91c1c] text-white shadow-lg shadow-red-900/20'
+                          : 'text-zinc-300 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      <Icon size={16} />
+                      <span>{tab.label}</span>
+                    </button>
+                  )
+                })}
               </div>
-              <div className="rounded-2xl bg-blue-50 p-3 text-blue-600"><Wallet size={20} /></div>
-            </div>
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-white p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Total P/L</p>
-                <p className={`text-2xl font-semibold mt-2 ${pnl.total >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>${pnl.total.toLocaleString('en-US', { minimumFractionDigits: 0 })}</p>
-              </div>
-              <div className={`rounded-2xl p-3 ${pnl.total >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}><ArrowUpRight size={20} /></div>
-            </div>
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-white p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Tracked assets</p>
-                <p className="text-2xl font-semibold text-gray-900 mt-2">{holdings.length}</p>
-              </div>
-              <div className="rounded-2xl bg-violet-50 p-3 text-violet-600"><PieChart size={20} /></div>
-            </div>
-          </div>
-        </div>
+            </aside>
+
+            <div className="min-w-0">
+              {activeTab === 'dashboard' && (
+                <div className="space-y-6">
+                  <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    <div className="rounded-[28px] border border-black/10 bg-[#111111] p-5 text-white shadow-[0_10px_30px_rgba(0,0,0,0.12)]">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-zinc-400">Net asset value</p>
+                          <p className="mt-3 text-2xl font-extrabold text-white">${totalPortfolioValue.toLocaleString('en-US', { minimumFractionDigits: 0 })}</p>
+                        </div>
+                        <div className="rounded-2xl bg-white/10 p-3 text-white"><Wallet size={20} /></div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-[28px] border border-black/10 bg-white p-5 shadow-[0_10px_30px_rgba(0,0,0,0.06)]">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-zinc-500">Total P/L</p>
+                          <p className={`mt-3 text-2xl font-extrabold ${pnl.total >= 0 ? 'text-emerald-700' : 'text-[#b91c1c]'}`}>
+                            ${pnl.total.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+                          </p>
+                        </div>
+                        <div className={`rounded-2xl p-3 ${pnl.total >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-[#b91c1c]'}`}>
+                          <ArrowUpRight size={20} />
+                        </div>
+                      </div>
+                    </div>
+                  </section>
 
         <div className="mb-8">
           {portfolioId && <TimeWeightedReturnChart portfolioId={portfolioId} />}
@@ -361,26 +401,44 @@ export default function App() {
           <PnLOverview total={pnl.total} breakdown={pnl.byAssetClass} />
         </div>
 
-        {portfolioId && portfolioMetrics?.nav && (
-          <div className="mb-8">
-            <AssetAllocationChart
-              navByAssetClass={portfolioMetrics.nav.byAssetClass}
-              items={items}
-              totalValue={totalPortfolioValue}
-            />
+                  {portfolioId && portfolioMetrics?.nav && (
+                    <section>
+                      <AssetAllocationChart
+                        navByAssetClass={portfolioMetrics.nav.byAssetClass}
+                        items={items}
+                        totalValue={totalPortfolioValue}
+                      />
+                    </section>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'flow' && (
+                <div className="grid gap-6 xl:grid-cols-2">
+                  <AddFlow handleExplorerBuy={handleExplorerBuy} />
+                  <RemoveFlow holdings={holdings} handleSell={openSellModal} />
+                </div>
+              )}
+
+              {activeTab === 'history' && (
+                <div>
+                  <TransactionHistoryScreen portfolioId={portfolioId} />
+                </div>
+              )}
+            </div>
           </div>
-        )}
-
-        <div className="grid gap-6 md:grid-cols-2 mb-8">
-          <AddFlow handleExplorerBuy={handleExplorerBuy} />
-          <RemoveFlow holdings={holdings} handleSell={openSellModal} />
-          {/* <HoldingsFluctuationList holdings={holdings} onSell={openSellModal} /> */}
-        </div>
-
-        <div className="mb-8">
-          <TransactionHistoryScreen portfolioId={portfolioId} />
-        </div>
+        </section>
       </main>
+
+      <footer className="border-t border-black/10 bg-[#111111] py-6 text-sm text-zinc-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-white">
+            <ShieldCheck size={16} className="text-[#ef4444]" />
+            <span className="font-semibold">King Kong Portfolio</span>
+          </div>
+          <p>Portfolio manager built for calm, confident execution.</p>
+        </div>
+      </footer>
 
       {activeTrade && (
         <TradeModal
@@ -402,16 +460,6 @@ export default function App() {
           onClose={() => setActiveSale(null)}
         />
       )}
-
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-gray-300 text-sm py-6 mt-12 border-t border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-center">
-            Portfolio Manager © 2024 • Built with React, TypeScript & Tailwind CSS
-          </p>
-        </div>
-      </footer>
 
       {toast && (
         <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />

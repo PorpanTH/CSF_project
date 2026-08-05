@@ -12,7 +12,7 @@ export const AddFlow = ({ handleExplorerBuy }: AddFlowProps) => {
         <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Add Flow</p>
         <h2 className="text-2xl font-bold text-gray-900 mt-1">Search and Add Financial Products</h2>
       </div>
-      <div className="mt-6 overflow-y-auto flex-1" style={{ maxHeight: '600px' }}>
+      <div className="overflow-y-auto flex-1" style={{ maxHeight: '600px' }}>
         <MarketExplorer onBuy={handleExplorerBuy} />
       </div>
     </div>

@@ -53,6 +53,7 @@ export const AddItemForm = ({ onSubmit, onCancel, initialData }: AddItemFormProp
     if (validate()) {
       onSubmit({
         ...formData,
+        assetClass: formData.itemType,
         ticker: formData.ticker.toUpperCase(),
         quantity: parseFloat(formData.quantity as any),
         purchasePrice: parseFloat(formData.purchasePrice as any),
