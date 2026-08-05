@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ArrowUpRight, PieChart, Wallet } from 'lucide-react'
 import { PnLOverview } from './components/PnLOverview'
 import { AssetAllocationChart } from './components/AssetAllocationChart'
-import { AccumulatedPnLChart } from './components/AccumulatedPnLChart'
+import { TimeWeightedReturnChart } from './components/TimeWeightedReturnChart'
 import { AddFlow } from './components/AddFlow'
 import { RemoveFlow } from './components/RemoveFlow'
 import { TradeModal } from './components/TradeModal'
@@ -353,9 +353,12 @@ export default function App() {
           </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 mb-8">
+        <div className="mb-8">
+          {portfolioId && <TimeWeightedReturnChart portfolioId={portfolioId} />}
+        </div>
+
+        <div className="mb-8">
           <PnLOverview total={pnl.total} breakdown={pnl.byAssetClass} />
-          {portfolioId && <AccumulatedPnLChart portfolioId={portfolioId!} endValue={pnl.total} />}
         </div>
 
         {portfolioId && portfolioMetrics?.nav && (

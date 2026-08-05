@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, current_app
 import yfinance as yf
 from concurrent.futures import ThreadPoolExecutor
 from database.db import db
-from models.portfolio import Portfolio, PortfolioItem, TransactionHistory
+from models.portfolio import Portfolio, PortfolioItem, TransactionHistory, PortfolioNavHistory
 from routes.auth import get_default_user
 from services.nav_history import (
     record_nav_snapshot,
@@ -447,6 +447,29 @@ def record_portfolio_nav(portfolio_id):
     except Exception as e:
         current_app.logger.exception('failed to record nav snapshot')
         return jsonify({'error': 'Failed to record NAV snapshot'}), 500
+
+
+@portfolio_bp.route('/portfolios/<int:portfolio_id>/nav-history', methods=['GET'])
+def get_nav_history_endpoint(portfolio_id):
+    """Get full NAV history for a portfolio (all records, no filtering).
+
+    Returns raw NAV time series for frontend calculations: [{date, nav}, ...]
+    """
+    _log_action('get nav history', portfolio_id=portfolio_id)
+
+    portfolio = Portfolio.query.filter_by(id=portfolio_id, user_id=USER_ID).first()
+    if not portfolio:
+        return jsonify({'error': 'Portfolio not found'}), 404
+
+    try:
+        snapshots = PortfolioNavHistory.query.filter_by(
+            portfolio_id=portfolio_id
+        ).order_by(PortfolioNavHistory.snapshot_date).all()
+
+        return jsonify([s.to_dict() for s in snapshots]), 200
+    except Exception as e:
+        current_app.logger.exception('failed to get nav history')
+        return jsonify({'error': 'Failed to get NAV history'}), 500
 
 
 @portfolio_bp.route('/portfolios/<int:portfolio_id>/accumulated-pnl', methods=['GET'])
