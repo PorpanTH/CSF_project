@@ -119,28 +119,28 @@ export const MarketExplorer = ({ equities, onBuy }: MarketExplorerProps) => {
             <tr className="text-left text-gray-500 border-b border-gray-200">
               <th className="px-2 pb-2 font-medium">Ticker</th>
               <th className="px-2 pb-2 font-medium">Sector</th>
-              <th className="px-2 pb-2 font-medium text-right">Price</th>
-              <th className="px-2 pb-2 font-medium text-right">% Change</th>
-              <th className="px-2 pb-2 font-medium text-right"></th>
+              <th className="px-2 pb-2 font-medium">Price</th>
+              <th className="px-2 pb-2 font-medium">% Change</th>
+              <th className="px-2 pb-2 font-medium"></th>
             </tr>
           </thead>
           <tbody>
             {filtered.map(eq => {
               const positive = eq.changePercent >= 0
               return (
-                <tr key={eq.ticker} className="border-b border-gray-100 last:border-0">
+                <tr key={eq.ticker} className="border-b border-gray-100 last:border-0 text-left">
                   <td className="px-2 py-2.5">
                     <p className="font-semibold text-gray-900">{eq.ticker}</p>
                     <p className="text-xs text-gray-500">{eq.name}</p>
                   </td>
                   <td className="px-2 py-2.5 text-gray-700">{eq.sector}</td>
-                  <td className="px-2 py-2.5 text-right font-medium text-gray-900">
+                  <td className="px-2 py-2.5 font-medium text-gray-900">
                     ${eq.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </td>
-                  <td className="px-2 py-2.5 text-right font-medium" style={{ color: positive ? STATUS.goodText : STATUS.critical }}>
+                  <td className="px-2 py-2.5 font-medium" style={{ color: positive ? STATUS.goodText : STATUS.critical }}>
                     {positive ? '+' : ''}{eq.changePercent.toFixed(2)}%
                   </td>
-                  <td className="px-2 py-2.5 text-right flex gap-2 justify-end">
+                  <td className="px-2 py-2.5 flex gap-2 justify-end">
                     <button
                       onClick={() => onBuy(eq)}
                       className="px-3 py-1.5 text-xs font-medium text-white rounded-md"
