@@ -1,6 +1,7 @@
 import logging
 import time
 from urllib.parse import urlparse
+from pathlib import Path
 
 from flask import Flask, jsonify, g, request
 from flask_cors import CORS
@@ -10,7 +11,11 @@ from sqlalchemy import event
 from database.db import db
 from apscheduler.schedulers.background import BackgroundScheduler
 
-load_dotenv()
+ROOT_DOTENV = Path(__file__).resolve().parents[2] / '.env'
+if ROOT_DOTENV.exists():
+    load_dotenv(ROOT_DOTENV)
+else:
+    load_dotenv()
 
 
 def schedule_daily_nav_snapshots(app):

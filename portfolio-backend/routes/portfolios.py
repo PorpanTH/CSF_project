@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, current_app
 import yfinance as yf
 from database.db import db
-from models.portfolio import Portfolio, PortfolioItem, TransactionHistory
+from models.portfolio import Portfolio, PortfolioItem, TransactionHistory, PortfolioNavHistory
 from routes.auth import get_default_user
 from services.nav_history import (
     record_nav_snapshot,
@@ -438,6 +438,52 @@ def record_portfolio_nav(portfolio_id):
         current_app.logger.exception('failed to record nav snapshot')
         return jsonify({'error': 'Failed to record NAV snapshot'}), 500
 
+
+@portfolio_bp.route('/portfolios/<int:portfolio_id>/nav-history', methods=['GET'])
+def get_nav_history_endpoint(portfolio_id):
+    """Get full NAV history for a portfolio (all records, no filtering).
+
+    Returns raw NAV time series for frontend calculations.
+    [{date: "YYYY-MM-DD", nav: number}, ...]
+    """
+    _log_action('NAV-HISTORY ENDPOINT CALLED', portfolio_id=portfolio_id)
+
+    portfolio = Portfolio.query.filter_by(id=portfolio_id, user_id=USER_ID).first()
+    if not portfolio:
+        current_app.logger.error(f'Portfolio not found: id={portfolio_id}, user={USER_ID}')
+        return jsonify({'error': 'Portfolio not found'}), 404
+
+    try:
+        snapshots = PortfolioNavHistory.query.filter_by(
+            portfolio_id=portfolio_id
+        ).order_by(PortfolioNavHistory.snapshot_date).all()
+
+        current_app.logger.info(f'NAV-HISTORY: Found {len(snapshots)} records for portfolio {portfolio_id}')
+        if snapshots:
+            current_app.logger.info(f'NAV-HISTORY: Date range {snapshots[0].snapshot_date} to {snapshots[-1].snapshot_date}')
+
+        data = [{'date': s.snapshot_date.isoformat(), 'nav': s.nav} for s in snapshots]
+        current_app.logger.info(f'NAV-HISTORY: Returning {len(data)} records')
+        # Add debug marker to verify this endpoint is being called
+        # response_data = {'_endpoint': 'get_nav_history_endpoint', '_record_count': len(data), 'data': data}
+        # return jsonify(response_data), 200
+        return jsonify(data), 200
+    except Exception as e:
+        current_app.logger.exception('NAV-HISTORY: Exception occurred')
+        return jsonify({'error': 'Failed to get NAV history'}), 500
+
+
+@portfolio_bp.route('/portfolios/<int:portfolio_id>/nav-history-v2', methods=['GET'])
+def get_nav_history_v2(portfolio_id):
+    """TEST: Get full NAV history without any filtering."""
+    try:
+        snapshots = PortfolioNavHistory.query.filter_by(
+            portfolio_id=portfolio_id
+        ).order_by(PortfolioNavHistory.snapshot_date).all()
+        data = [{'date': s.snapshot_date.isoformat(), 'nav': s.nav} for s in snapshots]
+        return jsonify({'total': len(data), 'first_date': snapshots[0].snapshot_date.isoformat() if snapshots else None, 'last_date': snapshots[-1].snapshot_date.isoformat() if snapshots else None, 'data': data}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @portfolio_bp.route('/portfolios/<int:portfolio_id>/accumulated-pnl', methods=['GET'])
 def get_accumulated_pnl(portfolio_id):
