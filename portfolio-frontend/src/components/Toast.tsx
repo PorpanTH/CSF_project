@@ -14,10 +14,10 @@ export const Toast = ({ message, type, onClose, duration = 4000 }: ToastProps) =
     return () => clearTimeout(timer)
   }, [duration, onClose])
 
-  const bgColor = type === 'success' ? 'bg-green-50' : type === 'error' ? 'bg-red-50' : 'bg-blue-50'
-  const borderColor = type === 'success' ? 'border-green-200' : type === 'error' ? 'border-red-200' : 'border-blue-200'
-  const textColor = type === 'success' ? 'text-green-800' : type === 'error' ? 'text-red-800' : 'text-blue-800'
-  const iconColor = type === 'success' ? 'text-green-600' : type === 'error' ? 'text-red-600' : 'text-blue-600'
+  const bgColor = type === 'success' ? 'bg-green-50' : type === 'error' ? 'bg-red-50' : 'bg-slate-50'
+  const borderColor = type === 'success' ? 'border-green-200' : type === 'error' ? 'border-red-200' : 'border-slate-200'
+  const textColor = type === 'success' ? 'text-green-800' : type === 'error' ? 'text-red-800' : 'text-slate-800'
+  const iconColor = type === 'success' ? 'text-green-600' : type === 'error' ? 'text-red-600' : 'text-slate-600'
 
   return (
     <div className={`fixed bottom-4 right-4 max-w-sm ${bgColor} border ${borderColor} rounded-lg shadow-lg p-4 flex items-start gap-3 animate-slide-in z-50`}>

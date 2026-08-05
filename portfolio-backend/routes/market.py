@@ -26,47 +26,42 @@ MOCK_QUOTES = {
 
 
 def _get_quotes_with_day_change(tickers):
-    """Get current prices and daily % change for tickers using yfinance."""
+    """Get current prices and daily % change for tickers using yfinance with mock fallback."""
     quotes = {}
-    failed_tickers = []
 
     for ticker in tickers:
-        try:
-            ticker = ticker.strip().upper()
-            if not ticker:
-                continue
-
-            # Get 2 days of history to calculate daily change
-            history = yf.Ticker(ticker).history(period='2d')
-
-            if history.empty or len(history) < 1:
-                failed_tickers.append(ticker)
-                continue
-
-            # Get latest close price
-            latest_close = float(history['Close'].iloc[-1])
-
-            # Calculate day change percentage
-            if len(history) >= 2:
-                previous_close = float(history['Close'].iloc[-2])
-                day_change_percent = ((latest_close - previous_close) / previous_close) * 100 if previous_close != 0 else 0
-            else:
-                day_change_percent = 0
-
-            quotes[ticker] = {
-                'price': latest_close,
-                'dayChangePercent': day_change_percent
-            }
-
-        except Exception as e:
-            current_app.logger.debug(f'Failed to fetch quote for {ticker}: {e}')
-            failed_tickers.append(ticker)
+        ticker = ticker.strip().upper()
+        if not ticker:
             continue
 
-    # Use mock data as fallback for failed tickers
-    for ticker in failed_tickers:
-        if ticker in MOCK_QUOTES:
-            quotes[ticker] = MOCK_QUOTES[ticker]
+        got_real_data = False
+        try:
+            # Try to get real data from yfinance with short timeout
+            history = yf.Ticker(ticker).history(period='2d', timeout=1)
+
+            if not history.empty and len(history) >= 1:
+                latest_close = float(history['Close'].iloc[-1])
+
+                # Calculate day change percentage
+                if len(history) >= 2:
+                    previous_close = float(history['Close'].iloc[-2])
+                    day_change_percent = ((latest_close - previous_close) / previous_close) * 100 if previous_close != 0 else 0
+                else:
+                    day_change_percent = 0
+
+                quotes[ticker] = {
+                    'price': latest_close,
+                    'dayChangePercent': day_change_percent
+                }
+                got_real_data = True
+
+        except Exception as e:
+            current_app.logger.debug(f'Failed to fetch real quote for {ticker}: {e}')
+
+        # Use mock data as fallback if yfinance failed
+        if not got_real_data:
+            if ticker in MOCK_QUOTES:
+                quotes[ticker] = MOCK_QUOTES[ticker]
 
     return quotes
 

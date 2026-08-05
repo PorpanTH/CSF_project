@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowUpRight, PieChart, Wallet } from 'lucide-react'
+import { ArrowUpRight, PieChart, Wallet, LayoutDashboard, ArrowLeftRight, History } from 'lucide-react'
 import { PnLOverview } from './components/PnLOverview'
 import { AssetAllocationChart } from './components/AssetAllocationChart'
 import { AccumulatedPnLChart } from './components/AccumulatedPnLChart'
@@ -15,6 +15,14 @@ import {
 } from './services/mockData'
 import { HoldingFluctuation, PortfolioItem, MarketEquity, PortfolioMetrics } from './types'
 import { Header } from './components/Header.tsx'
+
+type TabKey = 'dashboard' | 'trade' | 'history'
+
+const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
+  { key: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
+  { key: 'trade', label: 'Add & Remove', icon: <ArrowLeftRight size={20} /> },
+  { key: 'history', label: 'Transactions', icon: <History size={20} /> },
+]
 
 const uid = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
@@ -41,6 +49,7 @@ const findMatchingHolding = (
 ) => holdings.find(holding => holding.ticker.toUpperCase() === ticker.toUpperCase() && holding.itemType === itemType)
 
 export default function App() {
+  const [activeTab, setActiveTab] = useState<TabKey>('dashboard')
   const [portfolioId, setPortfolioId] = useState<string | null>(null)
   const [items, setItems] = useState<PortfolioItem[]>([])
   const [portfolioMetrics, setPortfolioMetrics] = useState<PortfolioMetrics | null>(null)
@@ -312,71 +321,109 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
 
+      {/* Tab Navigation */}
+      <nav className="bg-white border-b border-gray-200">
+        <div className="w-full px-4 sm:px-6 lg:px-10 xl:px-16">
+          <div className="flex">
+            {TABS.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex items-center gap-2 px-4 py-4 font-medium transition-colors border-b-2 ${
+                  activeTab === tab.key
+                    ? 'border-red-700 text-red-700'
+                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {tab.icon}
+                <span className="hidden sm:inline">{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </nav>
+
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <main className="flex-1 w-full px-4 sm:px-6 lg:px-10 xl:px-16 py-8">
+        {/* Dashboard Tab */}
+        {activeTab === 'dashboard' && (
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 mt-2">Investment Portfolio</h1>
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 mb-8">
-          <div className="rounded-3xl border border-slate-200 bg-white p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Net asset value</p>
-                <p className="text-2xl font-semibold text-gray-900 mt-2">${totalPortfolioValue.toLocaleString('en-US', { minimumFractionDigits: 0 })}</p>
-              </div>
-              <div className="rounded-2xl bg-blue-50 p-3 text-blue-600"><Wallet size={20} /></div>
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-gray-900">Investment Portfolio</h1>
             </div>
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-white p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Total P/L</p>
-                <p className={`text-2xl font-semibold mt-2 ${pnl.total >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>${pnl.total.toLocaleString('en-US', { minimumFractionDigits: 0 })}</p>
-              </div>
-              <div className={`rounded-2xl p-3 ${pnl.total >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}><ArrowUpRight size={20} /></div>
-            </div>
-          </div>
-          <div className="rounded-3xl border border-slate-200 bg-white p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Tracked assets</p>
-                <p className="text-2xl font-semibold text-gray-900 mt-2">{holdings.length}</p>
-              </div>
-              <div className="rounded-2xl bg-violet-50 p-3 text-violet-600"><PieChart size={20} /></div>
-            </div>
-          </div>
-        </div>
 
-        <div className="grid gap-6 md:grid-cols-2 mb-8">
-          <PnLOverview total={pnl.total} breakdown={pnl.byAssetClass} />
-          {portfolioId && <AccumulatedPnLChart portfolioId={portfolioId!} endValue={pnl.total} />}
-        </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-8">
+              <div className="rounded-3xl border border-slate-200 bg-white p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-slate-500">Net asset value</p>
+                    <p className="text-2xl font-semibold text-gray-900 mt-2">${totalPortfolioValue.toLocaleString('en-US', { minimumFractionDigits: 0 })}</p>
+                  </div>
+                  <div className="rounded-2xl bg-red-50 p-3 text-red-700"><Wallet size={20} /></div>
+                </div>
+              </div>
+              <div className="rounded-3xl border border-slate-200 bg-white p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-slate-500">Total P/L</p>
+                    <p className={`text-2xl font-semibold mt-2 ${pnl.total >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>${pnl.total.toLocaleString('en-US', { minimumFractionDigits: 0 })}</p>
+                  </div>
+                  <div className={`rounded-2xl p-3 ${pnl.total >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}><ArrowUpRight size={20} /></div>
+                </div>
+              </div>
+              <div className="rounded-3xl border border-slate-200 bg-white p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-slate-500">Tracked assets</p>
+                    <p className="text-2xl font-semibold text-gray-900 mt-2">{holdings.length}</p>
+                  </div>
+                  <div className="rounded-2xl bg-gray-100 p-3 text-gray-700"><PieChart size={20} /></div>
+                </div>
+              </div>
+            </div>
 
-        {portfolioId && portfolioMetrics?.nav && (
-          <div className="mb-8">
-            <AssetAllocationChart
-              navByAssetClass={portfolioMetrics.nav.byAssetClass}
-              items={items}
-              totalValue={totalPortfolioValue}
-            />
+            <div className="grid gap-6 lg:grid-cols-2 mb-8">
+              <PnLOverview total={pnl.total} breakdown={pnl.byAssetClass} />
+              {portfolioId && <AccumulatedPnLChart portfolioId={portfolioId!} endValue={pnl.total} />}
+            </div>
+
+            {portfolioId && portfolioMetrics?.nav && (
+              <div className="mb-8">
+                <AssetAllocationChart
+                  navByAssetClass={portfolioMetrics.nav.byAssetClass}
+                  items={items}
+                  totalValue={totalPortfolioValue}
+                />
+              </div>
+            )}
           </div>
         )}
 
-        <div className="grid gap-6 md:grid-cols-2 mb-8">
-          <AddFlow handleExplorerBuy={handleExplorerBuy} />
-          <RemoveFlow holdings={holdings} handleSell={openSellModal} />
-          {/* <HoldingsFluctuationList holdings={holdings} onSell={openSellModal} /> */}
-        </div>
+        {/* Add & Remove Tab */}
+        {activeTab === 'trade' && (
+          <div>
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-gray-900">Add & Remove Holdings</h1>
+            </div>
+            <div className="grid gap-6 lg:grid-cols-2">
+              <AddFlow handleExplorerBuy={handleExplorerBuy} />
+              <RemoveFlow holdings={holdings} handleSell={openSellModal} />
+            </div>
+          </div>
+        )}
 
-        <div className="mb-8">
-          <TransactionHistoryScreen portfolioId={portfolioId} />
-        </div>
+        {/* Transactions Tab */}
+        {activeTab === 'history' && (
+          <div>
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-gray-900">Transaction History</h1>
+            </div>
+            <TransactionHistoryScreen portfolioId={portfolioId} />
+          </div>
+        )}
       </main>
 
       {activeTrade && (
@@ -400,10 +447,9 @@ export default function App() {
         />
       )}
 
-
       {/* Footer */}
-      <footer className="bg-gray-900 text-gray-300 text-sm py-6 mt-12 border-t border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <footer className="bg-gray-900 text-gray-300 text-sm py-6 border-t border-gray-800">
+        <div className="w-full px-4 sm:px-6 lg:px-10 xl:px-16">
           <p className="text-center">
             Portfolio Manager © 2024 • Built with React, TypeScript & Tailwind CSS
           </p>

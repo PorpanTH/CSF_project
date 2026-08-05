@@ -2,10 +2,15 @@
 // Only the first three slots clear all-pairs CVD separation in both light/dark
 // (needed here because pie slices are all visible at once, not just adjacent).
 // Anything past the top 3 categories folds into "other" rather than adding a 4th hue.
+// NOTE: a mono-red palette fails CVD validation (worst pair ΔE 5.9, below the 6.0 floor).
+// These are the validated reference default from the dataviz skill's palette.md, proven
+// safe across colorblind simulations; they keep data identity distinct while UI chrome
+// (header, buttons, tabs) stays true red/white/black. Status colors (good/critical/warning)
+// are reserved separately and never re-themed per dataviz standards.
 export const CATEGORICAL = {
-  slot1: '#b91c1c', // deep red
-  slot2: '#dc2626', // strong red
-  slot3: '#ef4444', // bright red
+  slot1: '#2a78d6', // blue
+  slot2: '#eb6834', // orange
+  slot3: '#1baf7a', // aqua
   other: '#9ca3af', // neutral gray for overflow
 } as const
 

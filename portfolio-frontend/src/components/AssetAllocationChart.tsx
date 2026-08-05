@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { ChevronLeft } from 'lucide-react'
 import { PortfolioItem, NavByAssetClass } from '../types'
+import { CATEGORICAL_ORDER } from '../theme/colors'
 
 interface AssetAllocationChartProps {
   navByAssetClass: NavByAssetClass[]
@@ -9,7 +10,7 @@ interface AssetAllocationChartProps {
   totalValue: number
 }
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316']
+const COLORS = CATEGORICAL_ORDER
 
 const aggregateSmallAssets = (data: Array<{ name: string; value: number }>, threshold = 0.05) => {
   const total = data.reduce((sum, item) => sum + item.value, 0)

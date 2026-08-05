@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer } from 'recharts'
 import { PnLRange } from '../types'
 import { STATUS, INK, BRAND } from '../theme/colors'
-import { TrendingUp, TrendingDown } from 'lucide-react'
+import { TrendingUp, TrendingDown, AlertTriangle, BarChart3 } from 'lucide-react'
 
 interface AccumulatedPnLChartProps {
   portfolioId: string
@@ -121,15 +121,21 @@ export const AccumulatedPnLChart = ({ portfolioId, endValue }: AccumulatedPnLCha
 
         {error && (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 bg-red-50 rounded-lg border border-red-200">
-            <p className="text-red-600 font-medium">⚠️ Unable to load chart</p>
+            <div className="flex items-center gap-2 text-red-600 font-medium">
+              <AlertTriangle size={20} />
+              <span>Unable to load chart</span>
+            </div>
             <p className="text-sm text-red-500">{error}</p>
           </div>
         )}
 
         {!loading && !error && data.length === 0 && (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3 bg-blue-50 rounded-lg border border-blue-200">
-            <p className="text-blue-600 font-medium">📊 No historical data yet</p>
-            <p className="text-sm text-blue-500">Start recording daily snapshots to build your P/L chart</p>
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 bg-slate-50 rounded-lg border border-slate-200">
+            <div className="flex items-center gap-2 text-slate-600 font-medium">
+              <BarChart3 size={20} />
+              <span>No historical data yet</span>
+            </div>
+            <p className="text-sm text-slate-500">Start recording daily snapshots to build your P/L chart</p>
           </div>
         )}
 
