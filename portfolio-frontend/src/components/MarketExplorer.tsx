@@ -164,7 +164,7 @@ export const MarketExplorer = ({ onBuy }: MarketExplorerProps) => {
                   }`}
                 >
                   <div className="flex items-center gap-1">
-                    % Change
+                    % Day Change
                     {sortKey === 'changePercent' && (
                       <ArrowUpDown size={14} className={`transition-transform ${sortDir === 'desc' ? 'rotate-180' : ''}`} />
                     )}
