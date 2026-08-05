@@ -413,10 +413,14 @@ export default function App() {
             )}
 
             {activeTab === 'flow' && (
-              <div className="grid gap-6 xl:grid-cols-2">
+              <div className="grid gap-6 xl:grid-cols-10">
+              <div className="xl:col-span-4">
                 <AddFlow handleExplorerBuy={handleExplorerBuy} />
+              </div>
+              <div className="xl:col-span-6">
                 <RemoveFlow holdings={holdings} handleSell={openSellModal} />
               </div>
+            </div>
             )}
 
             {activeTab === 'history' && (

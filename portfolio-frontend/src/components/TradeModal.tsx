@@ -30,7 +30,7 @@ export const TradeModal = ({ mode, ticker, name, price, maxQuantity, availableBa
       <div className="bg-white rounded-lg shadow-xl max-w-sm w-full mx-4">
         <div className="p-6">
           <h2 className="text-xl font-bold text-gray-900">
-            {mode === 'buy' ? 'Buy' : 'Sell'} {ticker}
+            {mode === 'buy' ? 'Record buy for' : 'Sell'} {ticker}
           </h2>
           {name && <p className="text-sm text-gray-500">{name}</p>}
 
@@ -102,7 +102,7 @@ export const TradeModal = ({ mode, ticker, name, price, maxQuantity, availableBa
               className="flex-1 btn text-white disabled:opacity-40 disabled:cursor-not-allowed"
               style={{ backgroundColor: mode === 'buy' ? BRAND[700] : STATUS.good }}
             >
-              Confirm {mode === 'buy' ? 'Buy' : 'Sell'}
+              Record {mode === 'buy' ? 'Buy' : 'Sell'}
             </button>
             <button onClick={onClose} className="flex-1 btn-secondary">Cancel</button>
           </div>
