@@ -333,102 +333,100 @@ export default function App() {
     <div className="min-h-screen bg-[#f8f5f0] text-zinc-950">
       <Header />
 
-      <main className="w-full px-4 py-8 sm:px-6 lg:px-8">
-        <section className="min-h-[calc(100vh-6rem)] rounded-[32px] border border-black/10 bg-white p-4 shadow-[0_18px_60px_rgba(0,0,0,0.08)] sm:p-6">
-          <div className="grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)]">
-            <aside className="flex min-h-[calc(100vh-10rem)] flex-col rounded-[28px] bg-[#111111] p-3 shadow-[0_12px_35px_rgba(0,0,0,0.22)]">
-              <div className="mb-3 rounded-[22px] border border-white/10 bg-white/5 p-3">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-zinc-400">Portfolio control</p>
-                <p className="mt-1 text-sm font-semibold text-white">King Kong command deck</p>
-              </div>
-              <div className="space-y-2">
-                {tabs.map(tab => {
-                  const Icon = tab.icon
-                  const isActive = activeTab === tab.id
-
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`flex w-full items-center gap-3 rounded-[20px] px-4 py-3 text-left text-sm font-semibold transition-all duration-200 ${
-                        isActive
-                          ? 'bg-[#b91c1c] text-white shadow-lg shadow-red-900/20'
-                          : 'text-zinc-300 hover:bg-white/5 hover:text-white'
-                      }`}
-                    >
-                      <Icon size={16} />
-                      <span>{tab.label}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </aside>
-
-            <div className="min-w-0">
-              {activeTab === 'dashboard' && (
-                <div className="space-y-6">
-                  <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                    <div className="rounded-[28px] border border-black/10 bg-[#111111] p-5 text-white shadow-[0_10px_30px_rgba(0,0,0,0.12)]">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-zinc-400">Net asset value</p>
-                          <p className="mt-3 text-2xl font-extrabold text-white">${totalPortfolioValue.toLocaleString('en-US', { minimumFractionDigits: 0 })}</p>
-                        </div>
-                        <div className="rounded-2xl bg-white/10 p-3 text-white"><Wallet size={20} /></div>
-                      </div>
-                    </div>
-
-                    <div className="rounded-[28px] border border-black/10 bg-white p-5 shadow-[0_10px_30px_rgba(0,0,0,0.06)]">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-zinc-500">Total P/L</p>
-                          <p className={`mt-3 text-2xl font-extrabold ${pnl.total >= 0 ? 'text-emerald-700' : 'text-[#b91c1c]'}`}>
-                            ${pnl.total.toLocaleString('en-US', { minimumFractionDigits: 0 })}
-                          </p>
-                        </div>
-                        <div className={`rounded-2xl p-3 ${pnl.total >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-[#b91c1c]'}`}>
-                          <ArrowUpRight size={20} />
-                        </div>
-                      </div>
-                    </div>
-                  </section>
-
-        <div className="mb-8">
-          {portfolioId && <TimeWeightedReturnChart portfolioId={portfolioId} />}
-        </div>
-
-        <div className="mb-8">
-          <PnLOverview total={pnl.total} breakdown={pnl.byAssetClass} />
-        </div>
-
-                  {portfolioId && portfolioMetrics?.nav && (
-                    <section>
-                      <AssetAllocationChart
-                        navByAssetClass={portfolioMetrics.nav.byAssetClass}
-                        items={items}
-                        totalValue={totalPortfolioValue}
-                      />
-                    </section>
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'flow' && (
-                <div className="grid gap-6 xl:grid-cols-2">
-                  <AddFlow handleExplorerBuy={handleExplorerBuy} />
-                  <RemoveFlow holdings={holdings} handleSell={openSellModal} />
-                </div>
-              )}
-
-              {activeTab === 'history' && (
-                <div>
-                  <TransactionHistoryScreen portfolioId={portfolioId} />
-                </div>
-              )}
+      <section className="min-h-[calc(100vh-6rem)] rounded-[32px] border border-black/10 bg-white p-4 shadow-[0_18px_60px_rgba(0,0,0,0.08)] sm:p-6">
+        <div className="grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)]">
+          <aside className="flex min-h-[calc(100vh-10rem)] flex-col rounded-[28px] bg-[#111111] p-3 shadow-[0_12px_35px_rgba(0,0,0,0.22)]">
+            <div className="mb-3 rounded-[22px] border border-white/10 bg-white/5 p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-zinc-400">Portfolio control</p>
+              <p className="mt-1 text-sm font-semibold text-white">King Kong command deck</p>
             </div>
+            <div className="space-y-2">
+              {tabs.map(tab => {
+                const Icon = tab.icon
+                const isActive = activeTab === tab.id
+
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex w-full items-center gap-3 rounded-[20px] px-4 py-3 text-left text-sm font-semibold transition-all duration-200 ${
+                      isActive
+                        ? 'bg-[#b91c1c] text-white shadow-lg shadow-red-900/20'
+                        : 'text-zinc-300 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    <Icon size={16} />
+                    <span>{tab.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </aside>
+
+          <div className="min-w-0">
+            {activeTab === 'dashboard' && (
+              <div className="space-y-6">
+                <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  <div className="rounded-[28px] border border-black/10 bg-[#111111] p-5 text-white shadow-[0_10px_30px_rgba(0,0,0,0.12)]">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-zinc-400">Net asset value</p>
+                        <p className="mt-3 text-2xl font-extrabold text-white">${totalPortfolioValue.toLocaleString('en-US', { minimumFractionDigits: 0 })}</p>
+                      </div>
+                      <div className="rounded-2xl bg-white/10 p-3 text-white"><Wallet size={20} /></div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-[28px] border border-black/10 bg-white p-5 shadow-[0_10px_30px_rgba(0,0,0,0.06)]">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-zinc-500">Total P/L</p>
+                        <p className={`mt-3 text-2xl font-extrabold ${pnl.total >= 0 ? 'text-emerald-700' : 'text-[#b91c1c]'}`}>
+                          ${pnl.total.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+                        </p>
+                      </div>
+                      <div className={`rounded-2xl p-3 ${pnl.total >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-[#b91c1c]'}`}>
+                        <ArrowUpRight size={20} />
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+      <div className="mb-8">
+        {portfolioId && <TimeWeightedReturnChart portfolioId={portfolioId} />}
+      </div>
+
+      <div className="mb-8">
+        <PnLOverview total={pnl.total} breakdown={pnl.byAssetClass} />
+      </div>
+
+                {portfolioId && portfolioMetrics?.nav && (
+                  <section>
+                    <AssetAllocationChart
+                      navByAssetClass={portfolioMetrics.nav.byAssetClass}
+                      items={items}
+                      totalValue={totalPortfolioValue}
+                    />
+                  </section>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'flow' && (
+              <div className="grid gap-6 xl:grid-cols-2">
+                <AddFlow handleExplorerBuy={handleExplorerBuy} />
+                <RemoveFlow holdings={holdings} handleSell={openSellModal} />
+              </div>
+            )}
+
+            {activeTab === 'history' && (
+              <div>
+                <TransactionHistoryScreen portfolioId={portfolioId} />
+              </div>
+            )}
           </div>
-        </section>
-      </main>
+        </div>
+      </section>
 
       <footer className="border-t border-black/10 bg-[#111111] py-6 text-sm text-zinc-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -436,7 +434,6 @@ export default function App() {
             <ShieldCheck size={16} className="text-[#ef4444]" />
             <span className="font-semibold">King Kong Portfolio</span>
           </div>
-          <p>Portfolio manager built for calm, confident execution.</p>
         </div>
       </footer>
 
