@@ -25,26 +25,6 @@ export const Header = () => {
           >
             {isOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
-
-          <nav className={`${isOpen ? 'block' : 'hidden'} md:block absolute md:relative top-16 md:top-0 left-0 right-0 bg-slate-900 md:bg-transparent`}>
-            <ul className="flex flex-col md:flex-row gap-0 md:gap-8 p-4 md:p-0">
-              <li>
-                <Link to="/" className="block py-2 md:py-0 hover:text-blue-400 transition-colors">
-                  Dashboard
-                </Link>
-              </li>
-              <li>
-                <Link to="/portfolios" className="block py-2 md:py-0 hover:text-blue-400 transition-colors">
-                  Portfolios
-                </Link>
-              </li>
-              <li>
-                <Link to="/add-portfolio" className="block py-2 md:py-0 px-4 py-2 md:py-0 bg-white-600 md:bg-white-600 rounded-lg hover:bg-black-700 transition-colors">
-                  New Portfolio
-                </Link>
-              </li>
-            </ul>
-          </nav>
         </div>
       </div>
     </header>

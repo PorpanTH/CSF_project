@@ -51,6 +51,12 @@ class Portfolio(db.Model):
         return {
             'totalCost': total_cost,
             'totalValue': total_current,
+            'nav': {
+                'byAssetClass': [
+                    {'assetClass': k, 'value': v['value']}
+                    for k, v in sorted(asset_breakdown.items())
+                ]
+            },
             'pnl': {
                 'total': total_pnl,
                 'byAssetClass': [
