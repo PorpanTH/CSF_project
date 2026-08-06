@@ -4,7 +4,6 @@ import {
   LayoutDashboard,
   ArrowLeftRight,
   History,
-  PieChart,
   Wallet,
   ShieldCheck,
   ChevronLeft,
@@ -80,9 +79,11 @@ export default function App() {
     void loadPortfolio()
   }, [])
 
-  const loadPortfolio = async () => {
+  const loadPortfolio = async (showFullScreenLoader: boolean = true) => {
     try {
-      setIsLoading(true)
+      if (showFullScreenLoader) {
+        setIsLoading(true)
+      }
       const portfolios = await portfolioAPI.getAll()
       const portfolio = portfolios.find(item => item.id === '1') ?? portfolios[0]
 
@@ -96,7 +97,9 @@ export default function App() {
     } catch (error) {
       setToast({ message: 'Failed to load portfolio from the backend.', type: 'error' })
     } finally {
-      setIsLoading(false)
+      if (showFullScreenLoader) {
+        setIsLoading(false)
+      }
     }
   }
 
@@ -222,7 +225,7 @@ export default function App() {
           quantity,
           itemType,
         })
-        await loadPortfolio()
+        await loadPortfolio(false)
         setToast({ message: `Recorded buy for ${quantity} ${ticker}.`, type: 'success' })
       } catch (error) {
         setToast({ message: 'Failed to record the buy transaction.', type: 'error' })
@@ -259,7 +262,7 @@ export default function App() {
 
       try {
         await commitItems(nextItems)
-        await loadPortfolio()
+        await loadPortfolio(false)
         setToast({ message: `Placed sell order for ${quantity} ${ticker}.`, type: 'success' })
       } catch (error) {
         setToast({ message: 'Failed to persist sell order to the backend.', type: 'error' })
@@ -298,7 +301,7 @@ export default function App() {
         price: soldPrice,
         quantity,
       })
-      await loadPortfolio()
+      await loadPortfolio(false)
       setToast({ message: `Recorded sale for ${quantity} ${item.ticker}.`, type: 'success' })
     } catch (error) {
       setToast({ message: 'Failed to record the sale transaction.', type: 'error' })
