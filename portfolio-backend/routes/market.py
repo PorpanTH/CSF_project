@@ -1,74 +1,8 @@
-from flask import Blueprint, request, jsonify, current_app
-import yfinance as yf
+from flask import Blueprint, request, jsonify
 from services.symbol_directory import search_symbols
+from services.quotes import get_quotes
 
 market_bp = Blueprint('market', __name__)
-
-# Mock data for fallback when yfinance is unavailable
-MOCK_QUOTES = {
-    'AAPL': {'price': 228.45, 'dayChangePercent': 1.25},
-    'MSFT': {'price': 417.89, 'dayChangePercent': 0.85},
-    'GOOGL': {'price': 155.62, 'dayChangePercent': 2.15},
-    'NVDA': {'price': 134.50, 'dayChangePercent': 1.95},
-    'AMZN': {'price': 185.32, 'dayChangePercent': 1.10},
-    'TSLA': {'price': 242.80, 'dayChangePercent': 2.45},
-    'META': {'price': 501.25, 'dayChangePercent': 1.65},
-    'JPM': {'price': 357.52, 'dayChangePercent': 1.38},
-    'BAC': {'price': 62.90, 'dayChangePercent': 0.67},
-    'WFC': {'price': 65.40, 'dayChangePercent': 1.45},
-    'VOO': {'price': 485.32, 'dayChangePercent': 1.10},
-    'VTI': {'price': 245.30, 'dayChangePercent': 1.05},
-    'QQQ': {'price': 395.75, 'dayChangePercent': 2.20},
-    'SPY': {'price': 502.18, 'dayChangePercent': 1.15},
-    'AGG': {'price': 95.75, 'dayChangePercent': 0.45},
-    'BND': {'price': 81.20, 'dayChangePercent': 0.50},
-}
-
-
-def _get_quotes_with_day_change(tickers):
-    """Get current prices and daily % change for tickers using yfinance."""
-    quotes = {}
-    failed_tickers = []
-
-    for ticker in tickers:
-        try:
-            ticker = ticker.strip().upper()
-            if not ticker:
-                continue
-
-            # Get 2 days of history to calculate daily change
-            history = yf.Ticker(ticker).history(period='2d')
-
-            if history.empty or len(history) < 1:
-                failed_tickers.append(ticker)
-                continue
-
-            # Get latest close price
-            latest_close = float(history['Close'].iloc[-1])
-
-            # Calculate day change percentage
-            if len(history) >= 2:
-                previous_close = float(history['Close'].iloc[-2])
-                day_change_percent = ((latest_close - previous_close) / previous_close) * 100 if previous_close != 0 else 0
-            else:
-                day_change_percent = 0
-
-            quotes[ticker] = {
-                'price': latest_close,
-                'dayChangePercent': day_change_percent
-            }
-
-        except Exception as e:
-            current_app.logger.debug(f'Failed to fetch quote for {ticker}: {e}')
-            failed_tickers.append(ticker)
-            continue
-
-    # Use mock data as fallback for failed tickers
-    for ticker in failed_tickers:
-        if ticker in MOCK_QUOTES:
-            quotes[ticker] = MOCK_QUOTES[ticker]
-
-    return quotes
 
 
 @market_bp.route('/symbols', methods=['GET'])
@@ -83,10 +17,16 @@ def get_symbols():
 
 
 @market_bp.route('/quotes', methods=['POST'])
-def get_quotes():
-    """Get live prices and daily change for a list of tickers."""
+def get_quotes_route():
+    """Get live prices and daily change for a list of tickers.
+
+    `fresh: true` skips the shared quote cache (used when the tickers came
+    from an explicit search, so the user sees a live-queried price rather
+    than a value that may be briefly stale).
+    """
     data = request.get_json() or {}
     tickers = data.get('tickers', [])
+    fresh = bool(data.get('fresh', False))
 
     # Cap tickers to prevent abuse
     if len(tickers) > 30:
@@ -95,5 +35,5 @@ def get_quotes():
     if not tickers:
         return jsonify({}), 200
 
-    quotes = _get_quotes_with_day_change(tickers)
+    quotes = get_quotes(tickers, fresh=fresh)
     return jsonify(quotes), 200

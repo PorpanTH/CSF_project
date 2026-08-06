@@ -1,6 +1,5 @@
 from flask import Blueprint, request, jsonify, current_app
 import yfinance as yf
-from concurrent.futures import ThreadPoolExecutor
 from database.db import db
 from models.portfolio import Portfolio, PortfolioItem, TransactionHistory, PortfolioNavHistory
 from routes.auth import get_default_user
@@ -12,6 +11,7 @@ from services.nav_history import (
     filter_by_range
 )
 from services.nav_seeding import seed_historical_nav, get_portfolio_seed_data
+from services.quotes import get_quotes, get_prices
 from datetime import datetime, timedelta
 import time
 
@@ -24,25 +24,22 @@ def _log_action(action, **details):
     current_app.logger.info('%s %s', action, details)
 
 
-def _fetch_ticker_price(ticker):
-    try:
-        history = yf.Ticker(ticker).history(period='1d')
-        if not history.empty:
-            return ticker, float(history['Close'].iloc[-1])
-    except Exception:
-        pass
-    return ticker, None
-
-
-def _get_live_prices(items):
+def _get_live_quotes(items):
+    """Price + day-change per ticker, e.g. for API responses that display both."""
     tickers = {item.ticker.strip().upper() for item in items if item.ticker}
     if not tickers:
         return {}
 
-    with ThreadPoolExecutor(max_workers=min(10, len(tickers))) as executor:
-        results = executor.map(_fetch_ticker_price, tickers)
+    return get_quotes(tickers)
 
-    return {ticker: price for ticker, price in results if price is not None}
+
+def _get_live_prices(items):
+    """Price-only lookup for PnL math (calculate_metrics), reusing the same cache."""
+    tickers = {item.ticker.strip().upper() for item in items if item.ticker}
+    if not tickers:
+        return {}
+
+    return get_prices(tickers)
 
 @portfolio_bp.route('/portfolios', methods=['GET'])
 @portfolio_bp.route('/portfolios/', methods=['GET'])
@@ -50,7 +47,7 @@ def get_portfolios():
     _log_action('list portfolios', user_id=USER_ID)
     portfolios = Portfolio.query.filter_by(user_id=USER_ID).all()
     current_app.logger.debug('found %s portfolios', len(portfolios))
-    return jsonify([p.to_dict(_get_live_prices(p.items)) for p in portfolios]), 200
+    return jsonify([p.to_dict(_get_live_quotes(p.items)) for p in portfolios]), 200
 
 @portfolio_bp.route('/portfolios', methods=['POST'])
 def create_portfolio():
@@ -65,7 +62,7 @@ def create_portfolio():
         db.session.add(portfolio)
         db.session.commit()
         _log_action('created portfolio', portfolio_id=portfolio.id, name=portfolio.name)
-        return jsonify(portfolio.to_dict(_get_live_prices(portfolio.items))), 201
+        return jsonify(portfolio.to_dict(_get_live_quotes(portfolio.items))), 201
     except Exception as e:
         current_app.logger.exception('failed to create portfolio')
         db.session.rollback()
@@ -77,7 +74,7 @@ def get_portfolio(portfolio_id):
     portfolio = Portfolio.query.filter_by(id=portfolio_id, user_id=USER_ID).first()
     if not portfolio:
         return jsonify({'error': 'Portfolio not found'}), 404
-    return jsonify(portfolio.to_dict(_get_live_prices(portfolio.items))), 200
+    return jsonify(portfolio.to_dict(_get_live_quotes(portfolio.items))), 200
 
 @portfolio_bp.route('/portfolios/<int:portfolio_id>', methods=['PUT'])
 def update_portfolio(portfolio_id):
@@ -95,7 +92,7 @@ def update_portfolio(portfolio_id):
     try:
         db.session.commit()
         _log_action('updated portfolio', portfolio_id=portfolio.id)
-        return jsonify(portfolio.to_dict(_get_live_prices(portfolio.items))), 200
+        return jsonify(portfolio.to_dict(_get_live_quotes(portfolio.items))), 200
     except Exception as e:
         current_app.logger.exception('failed to update portfolio')
         db.session.rollback()

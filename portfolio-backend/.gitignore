@@ -51,6 +51,9 @@ MANIFEST
 *.log
 logs/
 
+# Local startup-task cache (see controller/app.py)
+.startup_cache.json
+
 # Testing
 .pytest_cache/
 .coverage

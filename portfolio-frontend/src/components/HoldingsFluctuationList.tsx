@@ -56,7 +56,7 @@ export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuatio
           quantity: 0,
           purchasePrice: 0,
           currentPrice: holding.currentPrice,
-          changePercent: 0,
+          changePercent: holding.changePercent,
           unrealizedPnl: 0,
           priceHistory: holding.priceHistory,
           totalCost: 0,
@@ -66,15 +66,15 @@ export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuatio
       acc[key].quantity += holding.quantity
       acc[key].totalCost += holding.purchasePrice * holding.quantity
       acc[key].currentPrice = holding.currentPrice
+      // Day change is a property of the ticker's price movement, not of any
+      // one lot, so every lot for this ticker carries the same value.
+      acc[key].changePercent = holding.changePercent
       acc[key].unrealizedPnl += holding.unrealizedPnl
       return acc
     }, {} as Record<string, HoldingAccumulator>)
 
     const normalized = Object.values(grouped).map((holding) => {
       const avgCostBasis = holding.quantity > 0 ? holding.totalCost / holding.quantity : 0
-      const changePercent = avgCostBasis > 0
-        ? ((holding.currentPrice - avgCostBasis) / avgCostBasis) * 100
-        : 0
 
       return {
         key: holding.key,
@@ -84,7 +84,7 @@ export const HoldingsFluctuationList = ({ holdings, onSell }: HoldingsFluctuatio
         quantity: holding.quantity,
         purchasePrice: avgCostBasis,
         currentPrice: holding.currentPrice,
-        changePercent,
+        changePercent: holding.changePercent,
         unrealizedPnl: holding.unrealizedPnl,
         priceHistory: holding.priceHistory,
       }

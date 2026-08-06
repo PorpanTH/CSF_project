@@ -114,14 +114,14 @@ class SymbolDirectory:
 
     def search(self, query: str, category: str = 'all', limit: int = 25) -> list:
         """Search for symbols by ticker or name."""
-        self.ensure_loaded()
-
         if not query or not query.strip():
-            if category in ('all', 'stock'):
-                return DEFAULT_STOCKS[:limit]
+            # No query: show the curated starter list only, no NYSE/NASDAQ fetch.
+            if category == 'all':
+                return FALLBACK_SYMBOLS[:limit]
+            return [s for s in FALLBACK_SYMBOLS if s['type'] == category][:limit]
 
-            results = [s for s in self.symbols if s['type'] == category]
-            return results[:limit]
+        # Active search: pull the full NYSE/NASDAQ directory for live lookup.
+        self.ensure_loaded()
 
         query_lower = query.lower()
         results = []

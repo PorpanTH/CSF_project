@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Loader } from 'lucide-react'
 import { STATUS, BRAND } from '../theme/colors'
 
 interface TradeModalProps {
@@ -8,7 +9,7 @@ interface TradeModalProps {
   price: number
   maxQuantity?: number
   availableBalance?: number
-  onConfirm: (quantity: number, date?: string, price?: number) => void
+  onConfirm: (quantity: number, date?: string, price?: number) => void | Promise<void>
   onClose: () => void
 }
 
@@ -16,6 +17,7 @@ export const TradeModal = ({ mode, ticker, name, price, maxQuantity, availableBa
   const [quantity, setQuantity] = useState<number>(1)
   const [entryDate, setEntryDate] = useState(new Date().toISOString().slice(0, 10))
   const [entryPrice, setEntryPrice] = useState<number>(price)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const total = quantity * (mode === 'buy' ? entryPrice : price)
 
   const error =
@@ -24,6 +26,16 @@ export const TradeModal = ({ mode, ticker, name, price, maxQuantity, availableBa
     mode === 'buy' && availableBalance !== undefined && total > availableBalance ? 'Insufficient available balance' :
     mode === 'sell' && maxQuantity !== undefined && quantity > maxQuantity ? `You only hold ${maxQuantity} shares` :
     null
+
+  const handleConfirm = async () => {
+    if (error || isSubmitting) return
+    setIsSubmitting(true)
+    try {
+      await onConfirm(quantity, entryDate, mode === 'buy' ? entryPrice : price)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -48,7 +60,8 @@ export const TradeModal = ({ mode, ticker, name, price, maxQuantity, availableBa
                 max={mode === 'sell' ? maxQuantity : undefined}
                 value={quantity}
                 onChange={(e) => setQuantity(Math.max(0, parseInt(e.target.value || '0', 10)))}
-                className="input-field"
+                disabled={isSubmitting}
+                className="input-field disabled:opacity-60"
               />
               {mode === 'sell' && maxQuantity !== undefined && (
                 <p className="text-xs text-gray-400 mt-1">You hold {maxQuantity} shares</p>
@@ -63,7 +76,8 @@ export const TradeModal = ({ mode, ticker, name, price, maxQuantity, availableBa
                     type="date"
                     value={entryDate}
                     onChange={(e) => setEntryDate(e.target.value)}
-                    className="input-field"
+                    disabled={isSubmitting}
+                    className="input-field disabled:opacity-60"
                   />
                 </div>
                 <div>
@@ -74,7 +88,8 @@ export const TradeModal = ({ mode, ticker, name, price, maxQuantity, availableBa
                     step="0.01"
                     value={entryPrice}
                     onChange={(e) => setEntryPrice(Number(e.target.value))}
-                    className="input-field"
+                    disabled={isSubmitting}
+                    className="input-field disabled:opacity-60"
                   />
                 </div>
               </>
@@ -97,14 +112,15 @@ export const TradeModal = ({ mode, ticker, name, price, maxQuantity, availableBa
 
           <div className="flex gap-3 mt-6">
             <button
-              onClick={() => !error && onConfirm(quantity, entryDate, mode === 'buy' ? entryPrice : price)}
-              disabled={!!error}
-              className="flex-1 btn text-white disabled:opacity-40 disabled:cursor-not-allowed"
+              onClick={handleConfirm}
+              disabled={!!error || isSubmitting}
+              className="flex-1 btn text-white disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
               style={{ backgroundColor: mode === 'buy' ? BRAND[700] : STATUS.good }}
             >
-              Record {mode === 'buy' ? 'Buy' : 'Sell'}
+              {isSubmitting && <Loader size={14} className="animate-spin" />}
+              {isSubmitting ? 'Recording…' : `Record ${mode === 'buy' ? 'Buy' : 'Sell'}`}
             </button>
-            <button onClick={onClose} className="flex-1 btn-secondary">Cancel</button>
+            <button onClick={onClose} disabled={isSubmitting} className="flex-1 btn-secondary disabled:opacity-40 disabled:cursor-not-allowed">Cancel</button>
           </div>
         </div>
       </div>
