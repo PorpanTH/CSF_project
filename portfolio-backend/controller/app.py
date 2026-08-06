@@ -1,5 +1,8 @@
+import json
 import logging
 import time
+from datetime import datetime
+from pathlib import Path
 from urllib.parse import urlparse
 
 from flask import Flask, jsonify, g, request
@@ -11,6 +14,27 @@ from database.db import db
 from apscheduler.schedulers.background import BackgroundScheduler
 
 load_dotenv()
+
+# Schema check + default-data seeding hit the DB with a handful of
+# round-trips (DESCRIBE per table, plus lookup queries). They're idempotent,
+# so on a same-day restart we skip them entirely instead of repeating them
+# on every boot. Delete this file to force them to run again.
+_STARTUP_CACHE_FILE = Path(__file__).resolve().parent.parent / '.startup_cache.json'
+
+
+def _startup_tasks_already_ran_today():
+    try:
+        cached = json.loads(_STARTUP_CACHE_FILE.read_text())
+        return cached.get('date') == datetime.now().strftime('%Y-%m-%d')
+    except Exception:
+        return False
+
+
+def _mark_startup_tasks_ran():
+    try:
+        _STARTUP_CACHE_FILE.write_text(json.dumps({'date': datetime.now().strftime('%Y-%m-%d')}))
+    except Exception:
+        pass
 
 
 def schedule_daily_nav_snapshots(app):
@@ -167,43 +191,48 @@ def create_app():
     def bad_request(error):
         return jsonify({'error': 'Bad request'}), 400
 
-    # Create tables
-    with app.app_context():
-        db.create_all()
-        from models.user import User
-        from models.portfolio import Portfolio, PortfolioItem
+    # Create tables + seed default data. This is a handful of round-trips
+    # against the remote DB (schema DESCRIBE per table, plus lookups) that
+    # are idempotent, so skip them on same-day restarts.
+    if not _startup_tasks_already_ran_today():
+        with app.app_context():
+            db.create_all()
+            from models.user import User
+            from models.portfolio import Portfolio, PortfolioItem
 
-        user = User.query.get(1)
-        if not user:
-            app.logger.info('seeding default user')
-            user = User(id=1, name='Portfolio Manager')
-            db.session.add(user)
-            db.session.commit()
+            user = User.query.get(1)
+            if not user:
+                app.logger.info('seeding default user')
+                user = User(id=1, name='Portfolio Manager')
+                db.session.add(user)
+                db.session.commit()
 
-        portfolio = Portfolio.query.filter_by(user_id=1).first()
-        if not portfolio:
-            app.logger.info('seeding default portfolio and holdings')
-            portfolio = Portfolio(
-                user_id=1,
-                name='Primary Investment Portfolio',
-                description='My main investment portfolio focused on long-term growth',
-            )
-            db.session.add(portfolio)
-            db.session.commit()
+            portfolio = Portfolio.query.filter_by(user_id=1).first()
+            if not portfolio:
+                app.logger.info('seeding default portfolio and holdings')
+                portfolio = Portfolio(
+                    user_id=1,
+                    name='Primary Investment Portfolio',
+                    description='My main investment portfolio focused on long-term growth',
+                )
+                db.session.add(portfolio)
+                db.session.commit()
 
-            default_items = [
-                {'asset_class': 'stock', 'item_type': 'stock', 'ticker': 'AAPL', 'quantity': 50, 'purchase_price': 150.25, 'current_price': 228.45, 'purchase_date': '2023-06-15', 'sector': 'Technology', 'region': 'North America'},
-                {'asset_class': 'stock', 'item_type': 'stock', 'ticker': 'MSFT', 'quantity': 30, 'purchase_price': 310.50, 'current_price': 417.89, 'purchase_date': '2023-08-20', 'sector': 'Technology', 'region': 'North America'},
-                {'asset_class': 'stock', 'item_type': 'stock', 'ticker': 'GOOGL', 'quantity': 25, 'purchase_price': 100.00, 'current_price': 155.62, 'purchase_date': '2023-09-10', 'sector': 'Technology', 'region': 'North America'},
-                {'asset_class': 'stock', 'item_type': 'stock', 'ticker': 'ASML', 'quantity': 10, 'purchase_price': 550.00, 'current_price': 680.30, 'purchase_date': '2023-11-02', 'sector': 'Technology', 'region': 'Europe'},
-                {'asset_class': 'stock', 'item_type': 'stock', 'ticker': 'TSM', 'quantity': 40, 'purchase_price': 90.00, 'current_price': 165.20, 'purchase_date': '2024-01-18', 'sector': 'Technology', 'region': 'Asia'},
-                {'asset_class': 'bond', 'item_type': 'bond', 'ticker': 'VBTLX', 'quantity': 100, 'purchase_price': 75.00, 'current_price': 76.50, 'purchase_date': '2023-07-01', 'sector': 'Fixed Income', 'region': 'North America'},
-                {'asset_class': 'cash', 'item_type': 'cash', 'ticker': 'CASH', 'quantity': 5000, 'purchase_price': 1.0, 'current_price': 1.0, 'purchase_date': '2024-07-20', 'sector': 'Cash & Equivalents', 'region': 'North America'},
-            ]
+                default_items = [
+                    {'asset_class': 'stock', 'item_type': 'stock', 'ticker': 'AAPL', 'quantity': 50, 'purchase_price': 150.25, 'current_price': 228.45, 'purchase_date': '2023-06-15', 'sector': 'Technology', 'region': 'North America'},
+                    {'asset_class': 'stock', 'item_type': 'stock', 'ticker': 'MSFT', 'quantity': 30, 'purchase_price': 310.50, 'current_price': 417.89, 'purchase_date': '2023-08-20', 'sector': 'Technology', 'region': 'North America'},
+                    {'asset_class': 'stock', 'item_type': 'stock', 'ticker': 'GOOGL', 'quantity': 25, 'purchase_price': 100.00, 'current_price': 155.62, 'purchase_date': '2023-09-10', 'sector': 'Technology', 'region': 'North America'},
+                    {'asset_class': 'stock', 'item_type': 'stock', 'ticker': 'ASML', 'quantity': 10, 'purchase_price': 550.00, 'current_price': 680.30, 'purchase_date': '2023-11-02', 'sector': 'Technology', 'region': 'Europe'},
+                    {'asset_class': 'stock', 'item_type': 'stock', 'ticker': 'TSM', 'quantity': 40, 'purchase_price': 90.00, 'current_price': 165.20, 'purchase_date': '2024-01-18', 'sector': 'Technology', 'region': 'Asia'},
+                    {'asset_class': 'bond', 'item_type': 'bond', 'ticker': 'VBTLX', 'quantity': 100, 'purchase_price': 75.00, 'current_price': 76.50, 'purchase_date': '2023-07-01', 'sector': 'Fixed Income', 'region': 'North America'},
+                    {'asset_class': 'cash', 'item_type': 'cash', 'ticker': 'CASH', 'quantity': 5000, 'purchase_price': 1.0, 'current_price': 1.0, 'purchase_date': '2024-07-20', 'sector': 'Cash & Equivalents', 'region': 'North America'},
+                ]
 
-            for item_data in default_items:
-                db.session.add(PortfolioItem(portfolio_id=portfolio.id, **item_data))
-            db.session.commit()
+                for item_data in default_items:
+                    db.session.add(PortfolioItem(portfolio_id=portfolio.id, **item_data))
+                db.session.commit()
+
+        _mark_startup_tasks_ran()
 
     # Start daily NAV snapshot scheduler
     schedule_daily_nav_snapshots(app)
