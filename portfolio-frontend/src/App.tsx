@@ -453,7 +453,7 @@ export default function App() {
       </section>
 
       <footer className="border-t border-black/10 bg-[#111111] py-6 text-sm text-zinc-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="w-full px-4 sm:px-6 lg:px-10 xl:px-16 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 text-white">
             <ShieldCheck size={16} className="text-[#ef4444]" />
             <span className="font-semibold">King Kong Portfolio</span>
