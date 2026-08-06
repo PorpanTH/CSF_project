@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
+import { Loader } from 'lucide-react'
 import { BRAND, STATUS } from '../theme/colors'
 import { HoldingFluctuation } from '../types'
 
 interface SellTransactionModalProps {
   holding: HoldingFluctuation
-  onConfirm: (saleDate: string, soldPrice: number, quantity: number) => void
+  onConfirm: (saleDate: string, soldPrice: number, quantity: number) => void | Promise<void>
   onClose: () => void
 }
 
@@ -12,6 +13,7 @@ export const SellTransactionModal = ({ holding, onConfirm, onClose }: SellTransa
   const [saleDate, setSaleDate] = useState('')
   const [quantity, setQuantity] = useState<number>(holding.quantity)
   const [soldPrice, setSoldPrice] = useState<number>(holding.currentPrice)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     const today = new Date().toISOString().slice(0, 10)
@@ -28,6 +30,16 @@ export const SellTransactionModal = ({ holding, onConfirm, onClose }: SellTransa
     parsedQuantity > holding.quantity ? `You only hold ${holding.quantity} shares` :
     Number.isNaN(parsedPrice) || parsedPrice <= 0 ? 'Enter a sale price greater than 0' :
     null
+
+  const handleConfirm = async () => {
+    if (error || isSubmitting) return
+    setIsSubmitting(true)
+    try {
+      await onConfirm(saleDate, parsedPrice, parsedQuantity)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
@@ -46,7 +58,8 @@ export const SellTransactionModal = ({ holding, onConfirm, onClose }: SellTransa
                 step="0.01"
                 value={quantity}
                 onChange={(e) => setQuantity(Number(e.target.value))}
-                className="input-field"
+                disabled={isSubmitting}
+                className="input-field disabled:opacity-60"
               />
               <p className="text-xs text-gray-400 mt-1">You hold {holding.quantity} shares</p>
             </div>
@@ -57,7 +70,8 @@ export const SellTransactionModal = ({ holding, onConfirm, onClose }: SellTransa
                 type="date"
                 value={saleDate}
                 onChange={(e) => setSaleDate(e.target.value)}
-                className="input-field"
+                disabled={isSubmitting}
+                className="input-field disabled:opacity-60"
               />
             </div>
 
@@ -69,7 +83,8 @@ export const SellTransactionModal = ({ holding, onConfirm, onClose }: SellTransa
                 step="0.01"
                 value={soldPrice}
                 onChange={(e) => setSoldPrice(Number(e.target.value))}
-                className="input-field"
+                disabled={isSubmitting}
+                className="input-field disabled:opacity-60"
               />
             </div>
 
@@ -85,14 +100,15 @@ export const SellTransactionModal = ({ holding, onConfirm, onClose }: SellTransa
 
           <div className="flex gap-3 mt-6">
             <button
-              onClick={() => !error && onConfirm(saleDate, parsedPrice, parsedQuantity)}
-              disabled={!!error}
-              className="flex-1 btn text-white disabled:opacity-40 disabled:cursor-not-allowed"
+              onClick={handleConfirm}
+              disabled={!!error || isSubmitting}
+              className="flex-1 btn text-white disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
               style={{ backgroundColor: BRAND[700] }}
             >
-              Record Sale
+              {isSubmitting && <Loader size={14} className="animate-spin" />}
+              {isSubmitting ? 'Recording…' : 'Record Sale'}
             </button>
-            <button onClick={onClose} className="flex-1 btn-secondary">Cancel</button>
+            <button onClick={onClose} disabled={isSubmitting} className="flex-1 btn-secondary disabled:opacity-40 disabled:cursor-not-allowed">Cancel</button>
           </div>
         </div>
       </div>

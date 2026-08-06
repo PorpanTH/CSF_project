@@ -1,6 +1,5 @@
 import requests
 from datetime import datetime, timedelta
-from difflib import SequenceMatcher
 import logging
 
 logger = logging.getLogger(__name__)
@@ -61,9 +60,6 @@ class SymbolDirectory:
             return 'other'
         return 'stock'
 
-    def _similarity(self, a: str, b: str) -> float:
-        return SequenceMatcher(None, a, b).ratio()
-
     def _fetch_symbols(self):
         """Fetch NYSE and NASDAQ symbol lists from GitHub CSV."""
         symbols = []
@@ -113,7 +109,7 @@ class SymbolDirectory:
                 logger.warning('Using fallback symbol list')
 
     def search(self, query: str, category: str = 'all', limit: int = 25) -> list:
-        """Search for symbols by ticker or name."""
+        """Search for a symbol by exact ticker match only."""
         if not query or not query.strip():
             # No query: show the curated starter list only, no NYSE/NASDAQ fetch.
             if category == 'all':
@@ -123,35 +119,11 @@ class SymbolDirectory:
         # Active search: pull the full NYSE/NASDAQ directory for live lookup.
         self.ensure_loaded()
 
+        # Exact match only -- prefix/substring/fuzzy matching (on ticker or
+        # name) was surfacing unrelated results, e.g. "TSLA" also matching
+        # "TSLG"/"TSLL" tickers, or "apple" matching "Pineapple" by name.
         query_lower = query.lower()
-        results = []
-
-        # Pass 1: Exact/prefix matches on ticker
-        ticker_prefix_matches = [s for s in self.symbols if s['ticker'].lower().startswith(query_lower)]
-
-        # Pass 2: Substring matches on ticker or name
-        substring_matches = [
-            s for s in self.symbols
-            if s not in ticker_prefix_matches and (
-                query_lower in s['ticker'].lower() or
-                query_lower in s['name'].lower()
-            )
-        ]
-
-        # Pass 3: Fuzzy/name similarity matches if substring isn't enough
-        fuzzy_matches = []
-        if len(results) < limit:
-            for s in self.symbols:
-                if s in ticker_prefix_matches or s in substring_matches:
-                    continue
-                ticker_similarity = self._similarity(query_lower, s['ticker'].lower())
-                name_similarity = self._similarity(query_lower, s['name'].lower())
-                if ticker_similarity >= 0.7 or name_similarity >= 0.6:
-                    fuzzy_matches.append((max(ticker_similarity, name_similarity), s))
-            fuzzy_matches.sort(key=lambda pair: pair[0], reverse=True)
-            fuzzy_matches = [pair[1] for pair in fuzzy_matches]
-
-        results = ticker_prefix_matches + substring_matches + fuzzy_matches
+        results = [s for s in self.symbols if s['ticker'].lower() == query_lower]
 
         # Filter by category
         if category != 'all':
