@@ -31,10 +31,11 @@ MOCK_QUOTES = {
     'LQD': {'price': 109.40, 'dayChangePercent': 0.20},
 }
 
-# Short-lived cache shared by every caller (market search, portfolio pricing,
-# the daily NAV scheduler) so the same ticker isn't re-fetched from yfinance
-# multiple times within a short window.
-_CACHE_TTL = 60
+# Cache shared by every caller (market search, portfolio pricing, the daily
+# NAV scheduler) so the same ticker isn't re-fetched from yfinance
+# repeatedly. 20 minutes: long enough to cover a full add-flow session
+# (browse -> search -> clear search) on one fetch.
+_CACHE_TTL = 20 * 60
 _cache = {}
 
 
@@ -97,10 +98,22 @@ def get_quotes(tickers, fresh=False):
             logger.debug(f'Failed to fetch batch quotes for {to_fetch}: {e}')
             failed_tickers = to_fetch
 
-        # Cache the outcome for failed tickers too (mock fallback, or a miss)
-        # so a rate-limited/unavailable yfinance isn't hammered again for
-        # every request within the cache window.
         for ticker in failed_tickers:
+            # A live fetch just failed for this ticker (e.g. a cache-bypassing
+            # "fresh" search query hit yfinance while it was rate-limited).
+            # Keep serving the last known good price instead of clobbering it
+            # with the hardcoded mock -- that was overwriting real cached
+            # prices with mock ones on every failed "fresh" search, and once
+            # a ticker's cache entry was poisoned that way, the default
+            # listing (a plain cache read) would show the mock value too.
+            existing = _cache.get(ticker)
+            if existing and existing[1] is not None:
+                quotes[ticker] = existing[1]
+                continue
+
+            # No prior known price for this ticker at all -- mock fallback
+            # (or a cached miss) is the best we can do, so cache the outcome
+            # to avoid hammering yfinance again within the cache window.
             quote = MOCK_QUOTES.get(ticker)
             _cache[ticker] = (now, quote)
             if quote is not None:

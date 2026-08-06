@@ -25,6 +25,8 @@ export const TransactionHistoryScreen = ({ portfolioId }: TransactionHistoryScre
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [typeFilter, setTypeFilter] = useState<'all' | 'buy' | 'sell'>('all')
+  const [tickerInput, setTickerInput] = useState('')
+  const [tickerFilter, setTickerFilter] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
@@ -50,7 +52,18 @@ export const TransactionHistoryScreen = ({ portfolioId }: TransactionHistoryScre
     void loadHistory()
   }, [portfolioId, typeFilter])
 
-  const totalPages = Math.max(1, Math.ceil(transactions.length / TRANSACTIONS_PER_PAGE))
+  const filteredTransactions = useMemo(() => {
+    const ticker = tickerFilter.trim().toUpperCase()
+    if (!ticker) return transactions
+    return transactions.filter((transaction) => transaction.ticker.toUpperCase().includes(ticker))
+  }, [transactions, tickerFilter])
+
+  const applyTickerFilter = () => {
+    setTickerFilter(tickerInput.trim())
+    setCurrentPage(1)
+  }
+
+  const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / TRANSACTIONS_PER_PAGE))
   const safePage = Math.min(currentPage, totalPages)
 
   const visiblePages = useMemo(() => {
@@ -77,11 +90,11 @@ export const TransactionHistoryScreen = ({ portfolioId }: TransactionHistoryScre
 
   const pagedTransactions = useMemo(() => {
     const startIndex = (safePage - 1) * TRANSACTIONS_PER_PAGE
-    return transactions.slice(startIndex, startIndex + TRANSACTIONS_PER_PAGE)
-  }, [transactions, safePage])
+    return filteredTransactions.slice(startIndex, startIndex + TRANSACTIONS_PER_PAGE)
+  }, [filteredTransactions, safePage])
 
   const exportTransactionsCsv = () => {
-    if (transactions.length === 0) {
+    if (filteredTransactions.length === 0) {
       return
     }
 
@@ -96,7 +109,7 @@ export const TransactionHistoryScreen = ({ portfolioId }: TransactionHistoryScre
       'Realized P/L',
     ]
 
-    const rows = transactions.map((transaction) => [
+    const rows = filteredTransactions.map((transaction) => [
       transaction.type,
       transaction.date,
       transaction.ticker,
@@ -146,10 +159,26 @@ export const TransactionHistoryScreen = ({ portfolioId }: TransactionHistoryScre
             <ChevronDown size={16} className="pointer-events-none absolute right-3 text-gray-500" />
           </div>
 
+          <input
+            type="text"
+            placeholder="Filter by ticker..."
+            value={tickerInput}
+            onChange={(e) => setTickerInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') applyTickerFilter() }}
+            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-slate-300"
+          />
+          <button
+            type="button"
+            onClick={applyTickerFilter}
+            className="px-3 py-2 rounded-full text-sm font-medium text-gray-700 border border-gray-200 hover:bg-slate-50"
+          >
+            Filter
+          </button>
+
           <button
             type="button"
             onClick={exportTransactionsCsv}
-            disabled={isLoading || transactions.length === 0}
+            disabled={isLoading || filteredTransactions.length === 0}
             className="px-3 py-2 rounded-full text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ backgroundColor: BRAND[700] }}
           >
@@ -174,7 +203,13 @@ export const TransactionHistoryScreen = ({ portfolioId }: TransactionHistoryScre
         </div>
       )}
 
-      {!isLoading && !error && transactions.length > 0 && (
+      {!isLoading && !error && transactions.length > 0 && filteredTransactions.length === 0 && (
+        <div className="p-8 text-sm text-gray-500">
+          No transactions match ticker "{tickerFilter}".
+        </div>
+      )}
+
+      {!isLoading && !error && filteredTransactions.length > 0 && (
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-left text-gray-500 uppercase tracking-wide text-xs">
@@ -210,7 +245,7 @@ export const TransactionHistoryScreen = ({ portfolioId }: TransactionHistoryScre
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-6 py-4 border-t border-slate-200 bg-slate-50/40">
             <p className="text-xs text-gray-600">
               Showing {(safePage - 1) * TRANSACTIONS_PER_PAGE + 1}
-              -{Math.min(safePage * TRANSACTIONS_PER_PAGE, transactions.length)} of {transactions.length}
+              -{Math.min(safePage * TRANSACTIONS_PER_PAGE, filteredTransactions.length)} of {filteredTransactions.length}
             </p>
 
             <div className="flex items-center gap-2">

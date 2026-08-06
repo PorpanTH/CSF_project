@@ -183,7 +183,7 @@ export const TimeWeightedReturnChart = ({ portfolioId }: { portfolioId: string }
             <XAxis
               dataKey="date"
               stroke="#6b7280"
-              tick={{ fontSize: 11, fill: '#9ca3af' }}
+              tick={{ fontSize: 11, fill: '#e5e7eb' }}
               tickLine={false}
               axisLine={false}
             />
