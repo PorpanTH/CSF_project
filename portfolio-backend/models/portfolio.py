@@ -21,7 +21,7 @@ class Portfolio(db.Model):
         live_prices = live_prices or {}
         total_cost = 0
         total_current = 0
-        total_pnl = 0
+        total_unrealized_pnl = 0
         asset_breakdown = {}
 
         for item in self.items:
@@ -35,7 +35,7 @@ class Portfolio(db.Model):
 
             total_cost += cost
             total_current += current
-            total_pnl += pnl
+            total_unrealized_pnl += pnl
 
             asset_class = item.asset_class or item.item_type
             if asset_class not in asset_breakdown:
@@ -48,6 +48,13 @@ class Portfolio(db.Model):
             asset_breakdown[asset_class]['cost'] += cost
             asset_breakdown[asset_class]['pnl'] += pnl
 
+        # "Total P/L" on the dashboard is realized P/L only (money already
+        # locked in from sells), pulled from transaction history rather than
+        # the paper gains/losses on currently-held positions computed above.
+        realized_pnl = db.session.query(
+            db.func.coalesce(db.func.sum(TransactionHistory.realized_pnl), 0)
+        ).filter(TransactionHistory.portfolio_id == self.id).scalar()
+
         return {
             'totalCost': total_cost,
             'totalValue': total_current,
@@ -58,7 +65,8 @@ class Portfolio(db.Model):
                 ]
             },
             'pnl': {
-                'total': total_pnl,
+                'total': realized_pnl,
+                'unrealized': total_unrealized_pnl,
                 'byAssetClass': [
                     {'assetClass': k, 'pnl': v['pnl']}
                     for k, v in sorted(asset_breakdown.items())
@@ -66,8 +74,9 @@ class Portfolio(db.Model):
             }
         }
 
-    def to_dict(self, live_prices=None):
-        live_prices = live_prices or {}
+    def to_dict(self, live_quotes=None):
+        live_quotes = live_quotes or {}
+        live_prices = {ticker: quote.get('price') for ticker, quote in live_quotes.items()}
         metrics = self.calculate_metrics(live_prices)
         return {
             'id': str(self.id),
@@ -75,7 +84,7 @@ class Portfolio(db.Model):
             'description': self.description,
             'createdAt': self.created_at.isoformat(),
             'updatedAt': self.updated_at.isoformat(),
-            'items': [item.to_dict(live_prices.get((item.ticker or '').upper())) for item in self.items],
+            'items': [item.to_dict(live_quotes.get((item.ticker or '').upper())) for item in self.items],
             'metrics': metrics
         }
 
@@ -123,7 +132,9 @@ class PortfolioItem(db.Model):
     def __repr__(self):
         return f'<PortfolioItem {self.ticker}>'
 
-    def to_dict(self, live_price=None):
+    def to_dict(self, live_quote=None):
+        live_quote = live_quote or {}
+        live_price = live_quote.get('price')
         current_price = live_price if live_price is not None else (self.current_price or self.purchase_price)
         return {
             'id': str(self.id) if self.id is not None else None,
@@ -135,6 +146,7 @@ class PortfolioItem(db.Model):
             'purchasePrice': self.purchase_price,
             'purchaseDate': self.purchase_date,
             'currentPrice': current_price,
+            'dayChangePercent': live_quote.get('dayChangePercent', 0),
             'createdAt': self.created_at.isoformat() if self.created_at else None,
             'updatedAt': self.updated_at.isoformat() if self.updated_at else None,
             'name': self.name or '',

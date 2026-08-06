@@ -85,8 +85,8 @@ export const marketAPI = {
     return response.data
   },
 
-  getQuotes: async (tickers: string[]): Promise<Record<string, {price: number; dayChangePercent: number}>> => {
-    const response = await apiClient.post('/market/quotes', { tickers })
+  getQuotes: async (tickers: string[], fresh: boolean = false): Promise<Record<string, {price: number; dayChangePercent: number}>> => {
+    const response = await apiClient.post('/market/quotes', { tickers, fresh })
     return response.data
   },
 }

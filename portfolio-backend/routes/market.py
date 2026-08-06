@@ -18,9 +18,15 @@ def get_symbols():
 
 @market_bp.route('/quotes', methods=['POST'])
 def get_quotes_route():
-    """Get live prices and daily change for a list of tickers."""
+    """Get live prices and daily change for a list of tickers.
+
+    `fresh: true` skips the shared quote cache (used when the tickers came
+    from an explicit search, so the user sees a live-queried price rather
+    than a value that may be briefly stale).
+    """
     data = request.get_json() or {}
     tickers = data.get('tickers', [])
+    fresh = bool(data.get('fresh', False))
 
     # Cap tickers to prevent abuse
     if len(tickers) > 30:
@@ -29,5 +35,5 @@ def get_quotes_route():
     if not tickers:
         return jsonify({}), 200
 
-    quotes = get_quotes(tickers)
+    quotes = get_quotes(tickers, fresh=fresh)
     return jsonify(quotes), 200

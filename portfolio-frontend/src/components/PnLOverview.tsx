@@ -37,11 +37,11 @@ export const PnLOverview = ({ total, breakdown }: PnLOverviewProps) => {
             {totalPositive ? <TrendingUp size={20} className="text-emerald-400" /> : <TrendingDown size={20} className="text-rose-400" />}
           </div>
         </div>
-        <p className="mt-5 text-sm text-slate-400">Combined P/L across all positions in the portfolio.</p>
+        <p className="mt-5 text-sm text-slate-400">Realized P/L from closed positions, per transaction history.</p>
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 overflow-x-auto">
-        <h3 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">Breakdown by asset class</h3>
+        <h3 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">Unrealized P/L by asset class (open positions)</h3>
         <table className="w-full text-sm min-w-[300px]">
           <thead>
             <tr className="border-b border-gray-200 text-left text-gray-500">

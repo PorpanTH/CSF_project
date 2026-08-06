@@ -38,7 +38,10 @@ export const MarketExplorer = ({ onBuy }: MarketExplorerProps) => {
       }
 
       const tickers = symbols.map(s => s.ticker)
-      const quotes = await marketAPI.getQuotes(tickers)
+      // An explicit search gets a live-queried quote rather than the shared
+      // cache used for the default listing (which is refreshed frequently
+      // enough on its own and needs to stay cache-backed to avoid rate limits).
+      const quotes = await marketAPI.getQuotes(tickers, searchQuery.trim() !== '')
 
       const enriched: MarketEquity[] = symbols.map(symbol => ({
         ticker: symbol.ticker,

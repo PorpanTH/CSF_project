@@ -9,6 +9,7 @@ export interface PortfolioItem {
   purchasePrice: number
   purchaseDate: string
   currentPrice: number
+  dayChangePercent?: number
   createdAt: string
   updatedAt: string
   sector: string
@@ -49,6 +50,7 @@ export interface PortfolioMetrics {
   }
   pnl?: {
     total: number
+    unrealized?: number
     byAssetClass: PnLByAssetClass[]
   }
 }

@@ -4,8 +4,9 @@ export const getHoldingsFluctuations = (items: PortfolioItem[]): HoldingFluctuat
   return items
     .filter(item => item.itemType !== 'cash')
     .map(item => {
-      const first = item.priceHistory[0]
-      const changePercent = first > 0 ? ((item.currentPrice - first) / first) * 100 : 0
+      // True day change (yesterday's close -> today's live price, from yfinance),
+      // not a lifetime/cost-basis return.
+      const changePercent = item.dayChangePercent ?? 0
       const unrealizedPnl = (item.currentPrice - item.purchasePrice) * item.quantity
       return {
         ticker: item.ticker,

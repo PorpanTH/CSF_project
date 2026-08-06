@@ -38,12 +38,17 @@ _CACHE_TTL = 60
 _cache = {}
 
 
-def get_quotes(tickers):
+def get_quotes(tickers, fresh=False):
     """Get current price + day change % for a list of tickers.
 
     Batches all tickers into a single yfinance request instead of one
     request per ticker, and caches results briefly to avoid tripping
     yfinance's rate limit on repeated calls.
+
+    fresh=True skips reading the cache (used for an explicit ticker search,
+    where the user wants a live quote rather than a value that may be up to
+    _CACHE_TTL seconds stale) but still writes the result back to the cache
+    so subsequent lookups of the same ticker within the window reuse it.
     """
     tickers = sorted({t.strip().upper() for t in tickers if t and t.strip()})
     if not tickers:
@@ -53,7 +58,7 @@ def get_quotes(tickers):
     now = time.time()
     to_fetch = []
     for ticker in tickers:
-        cached = _cache.get(ticker)
+        cached = None if fresh else _cache.get(ticker)
         if cached and now - cached[0] < _CACHE_TTL:
             if cached[1] is not None:
                 quotes[ticker] = cached[1]
