@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Search, ArrowUpDown, Loader } from 'lucide-react'
 import { MarketEquity } from '../types'
 import { STATUS, BRAND } from '../theme/colors'
@@ -21,12 +21,12 @@ const PRODUCT_CATEGORIES: { id: ProductCategory; label: string }[] = [
 
 export const MarketExplorer = ({ onBuy }: MarketExplorerProps) => {
   const [query, setQuery] = useState('')
+  const [submittedQuery, setSubmittedQuery] = useState('')
   const [results, setResults] = useState<MarketEquity[]>([])
   const [loading, setLoading] = useState(false)
   const [sortKey, setSortKey] = useState<SortKey>('name')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [category, setCategory] = useState<ProductCategory>('all')
-  const debounceTimerRef = useRef<ReturnType<typeof setTimeout>>()
 
   const fetchAndEnrich = async (searchQuery: string, searchCategory: ProductCategory) => {
     try {
@@ -61,24 +61,27 @@ export const MarketExplorer = ({ onBuy }: MarketExplorerProps) => {
     }
   }
 
-  // Fetch default or filtered products whenever query or category changes
+  // Re-fetch only on an explicit search submit or a category change. Typing
+  // alone no longer triggers anything — a keystroke-debounced search was
+  // firing a live (cache-bypassing) quote fetch for ~25 fuzzy-matched
+  // tickers on every character typed, which is what tripped yfinance's rate
+  // limit while typing out a single ticker.
   useEffect(() => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current)
+    fetchAndEnrich(submittedQuery, category)
+  }, [submittedQuery, category])
+
+  const handleQueryChange = (value: string) => {
+    setQuery(value)
+    if (value.trim() === '') {
+      // Clearing the box returns to the default listing, which is already
+      // cached, so that can happen immediately without a Search click.
+      setSubmittedQuery('')
     }
+  }
 
-    setLoading(true)
-
-    debounceTimerRef.current = setTimeout(async () => {
-      await fetchAndEnrich(query.trim(), category)
-    }, 300)
-
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current)
-      }
-    }
-  }, [query, category])
+  const submitSearch = () => {
+    setSubmittedQuery(query.trim())
+  }
 
   const sorted = useMemo(() => {
     return [...results].sort((a, b) => {
@@ -105,12 +108,21 @@ export const MarketExplorer = ({ onBuy }: MarketExplorerProps) => {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search by ticker or name..."
+            placeholder="Type a full ticker or name, then press Search..."
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => handleQueryChange(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') submitSearch() }}
             className="input-field pl-9 w-full"
           />
         </div>
+        <button
+          onClick={submitSearch}
+          disabled={loading}
+          className="btn text-white disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+          style={{ backgroundColor: BRAND[700] }}
+        >
+          Search
+        </button>
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
@@ -211,13 +223,13 @@ export const MarketExplorer = ({ onBuy }: MarketExplorerProps) => {
                   </tr>
                 )
               })
-            ) : query.trim() ? (
+            ) : submittedQuery.trim() ? (
               <tr>
                 <td colSpan={4} className="text-center text-gray-400 py-6">No results found.</td>
               </tr>
             ) : (
               <tr>
-                <td colSpan={4} className="text-center text-gray-400 py-6">Type a ticker or company name to search NYSE-listed securities</td>
+                <td colSpan={4} className="text-center text-gray-400 py-6">Type a ticker or company name and press Search</td>
               </tr>
             )}
           </tbody>
