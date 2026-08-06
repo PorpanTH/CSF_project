@@ -7,6 +7,8 @@ import {
   PieChart,
   Wallet,
   ShieldCheck,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { PnLOverview } from './components/PnLOverview'
 import { AssetAllocationChart } from './components/AssetAllocationChart'
@@ -59,6 +61,7 @@ export default function App() {
   const [portfolioMetrics, setPortfolioMetrics] = useState<PortfolioMetrics | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]['id']>('dashboard')
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [activeTrade, setActiveTrade] = useState<{
     mode: 'buy' | 'sell'
     ticker: string
@@ -334,12 +337,23 @@ export default function App() {
       <Header />
 
       <section className="min-h-[calc(100vh-6rem)] border border-black/10 bg-white p-4 shadow-[0_18px_60px_rgba(0,0,0,0.08)] sm:p-6">
-        <div className="grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)]">
-          <aside className="flex min-h-[calc(100vh-10rem)] flex-col rounded-[28px] bg-[#111111] p-3 shadow-[0_12px_35px_rgba(0,0,0,0.22)]">
-            <div className="mb-3 rounded-[22px] border border-white/10 bg-white/5 p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-zinc-400">Portfolio control</p>
-              <p className="mt-1 text-sm font-semibold text-white">King Kong command deck</p>
-            </div>
+        <div className={`grid gap-5 transition-[grid-template-columns] duration-300 ${isSidebarCollapsed ? 'xl:grid-cols-[88px_minmax(0,1fr)]' : 'xl:grid-cols-[300px_minmax(0,1fr)]'}`}>
+          <aside className="relative flex min-h-[calc(100vh-10rem)] flex-col rounded-[28px] bg-[#111111] p-3 shadow-[0_12px_35px_rgba(0,0,0,0.22)] transition-all duration-300">
+            <button
+              onClick={() => setIsSidebarCollapsed(v => !v)}
+              title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              className="absolute -right-3 top-6 z-10 hidden h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-[#1c1c1c] text-zinc-300 shadow-md transition-colors hover:bg-white/10 hover:text-white xl:flex"
+            >
+              {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+            </button>
+
+            {!isSidebarCollapsed && (
+              <div className="mb-3 rounded-[22px] border border-white/10 bg-white/5 p-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-zinc-400">Portfolio control</p>
+                <p className="mt-1 text-sm font-semibold text-white">King Kong command deck</p>
+              </div>
+            )}
+
             <div className="space-y-2">
               {tabs.map(tab => {
                 const Icon = tab.icon
@@ -349,14 +363,17 @@ export default function App() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
+                    title={isSidebarCollapsed ? tab.label : undefined}
                     className={`flex w-full items-center gap-3 rounded-[20px] px-4 py-3 text-left text-sm font-semibold transition-all duration-200 ${
+                      isSidebarCollapsed ? 'justify-center px-3' : ''
+                    } ${
                       isActive
                         ? 'bg-[#b91c1c] text-white shadow-lg shadow-red-900/20'
                         : 'text-zinc-300 hover:bg-white/5 hover:text-white'
                     }`}
                   >
                     <Icon size={16} />
-                    <span>{tab.label}</span>
+                    {!isSidebarCollapsed && <span>{tab.label}</span>}
                   </button>
                 )
               })}
